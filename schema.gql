@@ -1,0 +1,75 @@
+# ------------------------------------------------------
+# THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
+# ------------------------------------------------------
+
+enum AdminRoleEnum {
+  ADMIN
+  MODERATOR
+  SUPER_ADMIN
+}
+
+type AdminUser {
+  createdAt: DateTime
+  email: String
+  id: String
+  idTelegram: String
+  isEmailVerified: Boolean
+  isPhoneVerified: Boolean
+  name: String
+  phone: String
+  role: AdminRoleEnum
+  surname: String
+  updatedAt: DateTime
+}
+
+type AdminUserLogin {
+  id: String
+  role: AdminRoleEnum
+  token: String
+}
+
+type AdminUsersList {
+  items: [AdminUser!]
+  totalCount: Float
+}
+
+type CommonResponse {
+  error: ErrorResponse
+  success: Boolean
+}
+
+"""
+A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
+"""
+scalar DateTime
+
+type ErrorResponse {
+  error: String
+  message: String
+}
+
+type Mutation {
+  AdminUserCreate(email: String!, idTelegram: String, name: String!, password: String!, role: AdminRoleEnum, surname: String): AdminUser!
+  AdminUserLogin(email: String!, password: String!): AdminUserLogin!
+  AdminUserRemove(id: String!): CommonResponse!
+  AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: AdminRoleEnum, surname: String): AdminUser!
+  UserLogin(initData: String!, telegramId: String!): User!
+}
+
+type Query {
+  AdminUser(id: String!): AdminUser!
+  AdminUsersList(limit: Float!, offset: Float!): AdminUsersList!
+}
+
+type User {
+  createdAt: DateTime
+  email: String
+  id: String
+  idTelegram: String
+  isEmailVerified: Boolean
+  isPhoneVerified: Boolean
+  name: String
+  nameProfessor: String
+  phone: String
+  updatedAt: DateTime
+}
