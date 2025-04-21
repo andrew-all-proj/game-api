@@ -2,7 +2,7 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import { UserLoginArgs } from './dto/user.args'
 import { UserLogin } from './entities/user'
 import * as gameDb from 'game-db'
-import crypto from 'crypto'
+import { createHmac, createHash } from 'node:crypto'
 import config from '../../config'
 import { JwtService } from '@nestjs/jwt'
 
@@ -16,26 +16,33 @@ export class UserService {
     try {
       const params = new URLSearchParams(args.initData)
       const parsed: Record<string, string> = {}
+
       params.forEach((value, key) => {
         parsed[key] = value
       })
-      console.log(parsed)
+
       const hash = parsed.hash
+      if (!hash) throw new BadRequestException('Hash is missing in initData')
       delete parsed.hash
+      delete parsed.signature
 
       const dataCheckString = Object.keys(parsed)
         .sort()
         .map((key) => `${key}=${parsed[key]}`)
         .join('\n')
 
-      const secret = crypto.createHash('sha256').update(config.botToken).digest()
-      const hmac = crypto.createHmac('sha256', secret).update(dataCheckString).digest('hex')
+      const secret = createHash('sha256').update(config.botToken).digest()
+      const hmac = createHmac('sha256', secret).update(dataCheckString).digest('hex')
 
       if (hmac !== hash) {
+        console.log('expected:', hash)
+        console.log('actual  :', hmac)
+        console.log('dataCheckString:', dataCheckString)
         throw new BadRequestException('Invalid initData hash')
       }
-      //const telegramUser = JSON.parse(parsed.user)
-      user = await gameDb.Entities.User.findOne({ where: { idTelegram: '6972607582' } })
+
+      const telegramUser = JSON.parse(parsed.user)
+      user = await gameDb.Entities.User.findOne({ where: { idTelegram: telegramUser } })
     } catch (err) {
       console.log(err)
     }
