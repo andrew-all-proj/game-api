@@ -1527,6 +1527,34 @@
   dependencies:
     defer-to-connect "^2.0.1"
 
+"@telegram-apps/init-data-node@^2.0.3":
+  version "2.0.3"
+  resolved "https://registry.yarnpkg.com/@telegram-apps/init-data-node/-/init-data-node-2.0.3.tgz#7ded2c1485a44fbac3086460d40bd46dd5e01a19"
+  integrity sha512-0eYiRTiKzOTYBktKdQ1vdqWz8WAauYRtfeZhgfiHqjPuyNroQ20yzW/+i/6ENgSediXDaXdS1MNejkrQY4WBSQ==
+  dependencies:
+    "@telegram-apps/transformers" "^2.2.0"
+    "@telegram-apps/types" "^2.0.0"
+    error-kid "^0.0.4"
+
+"@telegram-apps/toolkit@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@telegram-apps/toolkit/-/toolkit-2.0.0.tgz#f4c45b3bcd77ad36477f8d94a8e943c2fe62c865"
+  integrity sha512-1GKTLBNme1Phu/gFvgS9NWPq+LhPfzSIfnwhcF9I/6tCdufrLRcVaSMRiK9R4VDYD6iZUyj+a2l250qWAxxjQQ==
+
+"@telegram-apps/transformers@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@telegram-apps/transformers/-/transformers-2.2.0.tgz#8b38094e83e7323eab8b51aeed0ce9d69a601e54"
+  integrity sha512-wqXXOukhEjZKhzdq5vG1LkxWL11DApbmUKzk+3nA/ki3TLyD3awVTOXbpoNdOwFl2xliIooYcsUOEl4WCyyLGw==
+  dependencies:
+    "@telegram-apps/toolkit" "^2.0.0"
+    "@telegram-apps/types" "^2.0.0"
+    valibot "1.0.0-beta.14"
+
+"@telegram-apps/types@^2.0.0":
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/@telegram-apps/types/-/types-2.0.0.tgz#5e4eb0e32b6bdeacf08abc4ebfbeef6c4228219f"
+  integrity sha512-yF499FJK82a2IDNDAQdrmVH3sgFZl/QFNdVZKgWpgtunIVJ1fres5wi9+4aUBRVIdQwZOZZqB/AOvYYuYXsq3Q==
+
 "@tokenizer/token@^0.3.0":
   version "0.3.0"
   resolved "https://registry.yarnpkg.com/@tokenizer/token/-/token-0.3.0.tgz#fe98a93fe789247e998c75e74e9c7c63217aa276"
@@ -3151,6 +3179,11 @@ error-ex@^1.3.1:
   integrity sha512-7dFHNmqeFSEt2ZBsCriorKnn3Z2pj+fd9kmI6QoWw4//DL+icEBfc0U7qJCisqrTsKTjw4fNFy2pW9OqStD84g==
   dependencies:
     is-arrayish "^0.2.1"
+
+error-kid@^0.0.4:
+  version "0.0.4"
+  resolved "https://registry.yarnpkg.com/error-kid/-/error-kid-0.0.4.tgz#8dc4769a4ff6ac0178a146472a8bcddd94319822"
+  integrity sha512-x+yQhY56SorLMnX6kOf+z3JCv2QBurcWEDcIjgxYtVr4fGeCfAtOdZOCyWttkHHDFPtL2PqnaRUmphbmALJd9w==
 
 es-define-property@^1.0.1:
   version "1.0.1"
@@ -6630,6 +6663,11 @@ v8-to-istanbul@^9.0.1:
     "@jridgewell/trace-mapping" "^0.3.12"
     "@types/istanbul-lib-coverage" "^2.0.1"
     convert-source-map "^2.0.0"
+
+valibot@1.0.0-beta.14:
+  version "1.0.0-beta.14"
+  resolved "https://registry.yarnpkg.com/valibot/-/valibot-1.0.0-beta.14.tgz#a02dab44ec538d4b2a36da4a2770eddc64f94da6"
+  integrity sha512-tLyV2rE5QL6U29MFy3xt4AqMrn+/HErcp2ZThASnQvPMwfSozjV1uBGKIGiegtZIGjinJqn0SlBdannf18wENA==
 
 validator@^13.9.0:
   version "13.15.0"

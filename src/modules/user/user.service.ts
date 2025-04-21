@@ -2,64 +2,40 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import { UserLoginArgs } from './dto/user.args'
 import { UserLogin } from './entities/user'
 import * as gameDb from 'game-db'
-import { createHmac, createHash } from 'node:crypto'
-import config from '../../config'
 import { JwtService } from '@nestjs/jwt'
+import { parse, isValid } from '@telegram-apps/init-data-node'
+import config from '../../config'
 
 @Injectable()
 export class UserService {
   constructor(private jwtService: JwtService) {}
 
   async login(args: UserLoginArgs): Promise<UserLogin> {
-    console.log(args)
+    console.log(args) //TODO remove
     let user
     try {
-      const params = new URLSearchParams(args.initData)
-      const parsed: Record<string, string> = {}
+      const valid = isValid(args.initData, config.botToken)
 
-      params.forEach((value, key) => {
-        parsed[key] = value
-      })
-
-      const hash = parsed.hash
-      if (!hash) throw new BadRequestException('Hash is missing in initData')
-      delete parsed.hash
-      delete parsed.signature
-
-      const dataCheckString = Object.keys(parsed)
-        .sort()
-        .map((key) => `${key}=${parsed[key]}`)
-        .join('\n')
-
-      const secret = createHash('sha256').update(config.botToken).digest()
-      const hmac = createHmac('sha256', secret).update(dataCheckString).digest('hex')
-
-      if (hmac !== hash) {
-        console.log('expected:', hash)
-        console.log('actual  :', hmac)
-        console.log('dataCheckString:', dataCheckString)
+      if (!valid) {
         throw new BadRequestException('Invalid initData hash')
       }
 
-      const telegramUser = JSON.parse(parsed.user)
-      user = await gameDb.Entities.User.findOne({ where: { idTelegram: telegramUser } })
+      const tlgUser = parse(args.initData).user
+      const tlgId = tlgUser?.id
+
+      if (!tlgId) {
+        throw new BadRequestException('User not found in initData')
+      }
+
+      user = await gameDb.Entities.User.findOne({ where: { idTelegram: tlgId.toString() } })
     } catch (err) {
-      console.log(err)
+      console.log('Login error:', err)
+      throw new BadRequestException('User initData error')
     }
 
     if (!user) {
       throw new BadRequestException('User not found')
     }
-
-    // if (!user) {
-    //   user = gameDb.Entities.User.create({
-    //     name: telegramUser.first_name,
-    //     surname: telegramUser.last_name,
-    //     username: telegramUser.username,
-    //     idTelegram: telegramUser.id,
-    //   })
-    //   await user.save()
-    // }
 
     const payload = {
       sub: user.id,
