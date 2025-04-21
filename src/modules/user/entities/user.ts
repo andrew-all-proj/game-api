@@ -32,3 +32,12 @@ export class User {
   @Field({ nullable: true })
   createdAt?: Date
 }
+
+@ObjectType()
+export class UserLogin {
+  @Field({ nullable: true })
+  token: string
+
+  @Field({ nullable: true })
+  id: string
+}

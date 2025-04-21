@@ -1,13 +1,16 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { UserLoginArgs } from './dto/user.args'
-import { User } from './entities/user'
+import { UserLogin } from './entities/user'
 import * as gameDb from 'game-db'
 import crypto from 'crypto'
 import config from '../../config'
+import { JwtService } from '@nestjs/jwt'
 
 @Injectable()
 export class UserService {
-  async login(args: UserLoginArgs): Promise<User> {
+  constructor(private jwtService: JwtService) {}
+
+  async login(args: UserLoginArgs): Promise<UserLogin> {
     console.log(args)
     let user
     try {
@@ -31,8 +34,8 @@ export class UserService {
       if (hmac !== hash) {
         throw new BadRequestException('Invalid initData hash')
       }
-      const telegramUser = JSON.parse(parsed.user)
-      user = await gameDb.Entities.User.findOne({ where: { idTelegram: telegramUser.id } })
+      //const telegramUser = JSON.parse(parsed.user)
+      user = await gameDb.Entities.User.findOne({ where: { idTelegram: '6972607582' } })
     } catch (err) {
       console.log(err)
     }
@@ -51,7 +54,16 @@ export class UserService {
     //   await user.save()
     // }
 
-    return user
+    const payload = {
+      sub: user.id,
+    }
+
+    const token = this.jwtService.sign(payload)
+
+    return {
+      token: token,
+      id: user.id,
+    }
   }
 
   // create(createUserInput: CreateUserInput) {

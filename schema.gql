@@ -53,7 +53,7 @@ type Mutation {
   AdminUserLogin(email: String!, password: String!): AdminUserLogin!
   AdminUserRemove(id: String!): CommonResponse!
   AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: AdminRoleEnum, surname: String): AdminUser!
-  UserLogin(initData: String!, telegramId: String!): User!
+  UserLogin(initData: String!, telegramId: String!): UserLogin!
 }
 
 type Query {
@@ -61,15 +61,7 @@ type Query {
   AdminUsersList(limit: Float!, offset: Float!): AdminUsersList!
 }
 
-type User {
-  createdAt: DateTime
-  email: String
+type UserLogin {
   id: String
-  idTelegram: String
-  isEmailVerified: Boolean
-  isPhoneVerified: Boolean
-  name: String
-  nameProfessor: String
-  phone: String
-  updatedAt: DateTime
+  token: String
 }
