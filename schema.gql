@@ -2,12 +2,6 @@
 # THIS FILE WAS AUTOMATICALLY GENERATED (DO NOT MODIFY)
 # ------------------------------------------------------
 
-enum AdminRoleEnum {
-  ADMIN
-  MODERATOR
-  SUPER_ADMIN
-}
-
 type AdminUser {
   createdAt: DateTime
   email: String
@@ -17,14 +11,14 @@ type AdminUser {
   isPhoneVerified: Boolean
   name: String
   phone: String
-  role: AdminRoleEnum
+  role: UserRoleEnum
   surname: String
   updatedAt: DateTime
 }
 
 type AdminUserLogin {
   id: String
-  role: AdminRoleEnum
+  role: UserRoleEnum
   token: String
 }
 
@@ -49,19 +43,50 @@ type ErrorResponse {
 }
 
 type Mutation {
-  AdminUserCreate(email: String!, idTelegram: String, name: String!, password: String!, role: AdminRoleEnum, surname: String): AdminUser!
+  AdminUserCreate(email: String!, idTelegram: String, name: String!, password: String!, role: UserRoleEnum, surname: String): AdminUser!
   AdminUserLogin(email: String!, password: String!): AdminUserLogin!
   AdminUserRemove(id: String!): CommonResponse!
-  AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: AdminRoleEnum, surname: String): AdminUser!
+  AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: UserRoleEnum, surname: String): AdminUser!
+  UserCreate(email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, name: String, nameProfessor: String, phone: String): User!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
+  UserRemove(id: String!): User!
+  UserUpdate(email: String, id: String!, idTelegram: String, name: String, nameProfessor: String, phone: String): User!
 }
 
 type Query {
   AdminUser(id: String!): AdminUser!
   AdminUsersList(limit: Float!, offset: Float!): AdminUsersList!
+  User(id: String!): User!
+  Users(limit: Float!, offset: Float!): UsersList!
+}
+
+type User {
+  createdAt: DateTime
+  email: String
+  id: String
+  idTelegram: String
+  isEmailVerified: Boolean
+  isPhoneVerified: Boolean
+  name: String
+  nameProfessor: String
+  phone: String
+  updatedAt: DateTime
 }
 
 type UserLogin {
   id: String
+  nameProfessor: String
   token: String
+}
+
+enum UserRoleEnum {
+  ADMIN
+  MODERATOR
+  SUPER_ADMIN
+  USER
+}
+
+type UsersList {
+  items: [User!]
+  totalCount: Float
 }

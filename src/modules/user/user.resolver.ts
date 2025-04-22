@@ -1,7 +1,12 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql'
 import { UserService } from './user.service'
-import { User, UserLogin } from './entities/user'
-import { UserLoginArgs } from './dto/user.args'
+import { User, UserLogin, UsersList } from './entities/user'
+import { UserArgs, UserCreateArgs, UserLoginArgs, UserRemoveArgs, UsersListArgs, UserUpdateArgs } from './dto/user.args'
+import { UseGuards } from '@nestjs/common'
+import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
+import * as gameDb from 'game-db'
+import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
+import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 
 @Resolver(() => User)
 export class UserResolver {
@@ -12,28 +17,46 @@ export class UserResolver {
     return this.userService.login(args)
   }
 
-  // @Mutation(() => User)
-  // UserCreate(@Args('createUserInput') createUserInput: CreateUserInput) {
-  //   return this.userService.create(createUserInput);
-  // }
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN)
+  @Mutation(() => User)
+  UserCreate(@Args() args: UserCreateArgs): Promise<User> {
+    return this.userService.create(args)
+  }
 
-  // @Query(() => [User])
-  // Users() {
-  //   return this.userService.findAll();
-  // }
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN, gameDb.datatypes.UserRoleEnum.ADMIN)
+  @Query(() => UsersList)
+  Users(@Args() args: UsersListArgs): Promise<UsersList> {
+    return this.userService.findAll(args)
+  }
 
-  // @Query(() => User, { name: 'user' })
-  // User(@Args('id', { type: () => Int }) id: number) {
-  //   return this.userService.findOne(id);
-  // }
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles(
+    gameDb.datatypes.UserRoleEnum.SUPER_ADMIN,
+    gameDb.datatypes.UserRoleEnum.ADMIN,
+    gameDb.datatypes.UserRoleEnum.USER,
+  )
+  @Query(() => User)
+  User(@Args() args: UserArgs, @Context() ctx: GraphQLContext): Promise<User> {
+    return this.userService.findOne(args, ctx)
+  }
 
-  // @Mutation(() => User)
-  // UserUpdate(@Args('updateUserInput') updateUserInput: UpdateUserInput) {
-  //   return this.userService.update(updateUserInput.id, updateUserInput);
-  // }
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles(
+    gameDb.datatypes.UserRoleEnum.SUPER_ADMIN,
+    gameDb.datatypes.UserRoleEnum.ADMIN,
+    gameDb.datatypes.UserRoleEnum.USER,
+  )
+  @Mutation(() => User)
+  UserUpdate(@Args() args: UserUpdateArgs, @Context() ctx: GraphQLContext): Promise<User> {
+    return this.userService.update(args, ctx)
+  }
 
-  // @Mutation(() => User)
-  // UserRemove(@Args('id', { type: () => Int }) id: number) {
-  //   return this.userService.remove(id);
-  // }
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN, gameDb.datatypes.UserRoleEnum.ADMIN)
+  @Mutation(() => User)
+  UserRemove(@Args() args: UserRemoveArgs): Promise<CommonResponse> {
+    return this.userService.remove(args)
+  }
 }

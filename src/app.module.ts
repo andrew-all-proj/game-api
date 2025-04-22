@@ -16,6 +16,10 @@ import './modules/register-enum-type'
       autoSchemaFile: 'schema.gql',
       playground: true,
       sortSchema: true,
+      context: ({ req }) => {
+        const user = req.user
+        return { user }
+      },
     }),
   ],
   controllers: [AppController],

@@ -40,4 +40,16 @@ export class UserLogin {
 
   @Field({ nullable: true })
   id: string
+
+  @Field({ nullable: true })
+  nameProfessor: string
+}
+
+@ObjectType()
+export class UsersList {
+  @Field(() => [User], { nullable: true })
+  items: User[]
+
+  @Field({ nullable: true })
+  totalCount: number
 }

@@ -8,4 +8,5 @@ if (!process.env.BOT_TOKEN) {
 
 export default {
   botToken: process.env.BOT_TOKEN,
+  local: process.env.LOCAL,
 }

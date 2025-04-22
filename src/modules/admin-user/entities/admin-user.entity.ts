@@ -15,8 +15,8 @@ export class AdminUser {
   @Field({ nullable: true })
   idTelegram?: string
 
-  @Field(() => gameDb.datatypes.AdminRoleEnum, { nullable: true })
-  role?: gameDb.datatypes.AdminRoleEnum
+  @Field(() => gameDb.datatypes.UserRoleEnum, { nullable: true })
+  role?: gameDb.datatypes.UserRoleEnum
 
   @Field({ nullable: true })
   email?: string
@@ -45,8 +45,8 @@ export class AdminUserLogin {
   @Field({ nullable: true })
   id: string
 
-  @Field(() => gameDb.datatypes.AdminRoleEnum, { nullable: true })
-  role?: gameDb.datatypes.AdminRoleEnum
+  @Field(() => gameDb.datatypes.UserRoleEnum, { nullable: true })
+  role?: gameDb.datatypes.UserRoleEnum
 }
 
 @ObjectType()

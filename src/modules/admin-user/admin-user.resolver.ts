@@ -12,7 +12,7 @@ import { AdminUser, AdminUserLogin, AdminUsersList } from './entities/admin-user
 import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'
-import { CommonResponse } from 'src/datatypes/entities/CommonResponse'
+import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 
 @Resolver(() => AdminUser)
 export class AdminUserResolver {
@@ -24,35 +24,35 @@ export class AdminUserResolver {
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
-  @Roles(gameDb.datatypes.AdminRoleEnum.SUPER_ADMIN)
+  @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN)
   @Mutation(() => AdminUser)
   AdminUserCreate(@Args() request: AdminUserCreateArgs): Promise<AdminUser> {
     return this.userService.create(request)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
-  @Roles(gameDb.datatypes.AdminRoleEnum.SUPER_ADMIN, gameDb.datatypes.AdminRoleEnum.ADMIN)
+  @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN, gameDb.datatypes.UserRoleEnum.ADMIN)
   @Query(() => AdminUsersList)
   AdminUsersList(@Args() request: AdminUsersListArgs): Promise<AdminUsersList> {
     return this.userService.findAll(request)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
-  @Roles(gameDb.datatypes.AdminRoleEnum.SUPER_ADMIN, gameDb.datatypes.AdminRoleEnum.ADMIN)
+  @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN, gameDb.datatypes.UserRoleEnum.ADMIN)
   @Query(() => AdminUser)
   AdminUser(@Args() request: AdminUserArgs) {
     return this.userService.findOne(request)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
-  @Roles(gameDb.datatypes.AdminRoleEnum.SUPER_ADMIN, gameDb.datatypes.AdminRoleEnum.ADMIN)
+  @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN, gameDb.datatypes.UserRoleEnum.ADMIN)
   @Mutation(() => AdminUser)
   AdminUserUpdate(@Args() request: AdminUserUpdateArgs): Promise<AdminUser> {
     return this.userService.update(request)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
-  @Roles(gameDb.datatypes.AdminRoleEnum.SUPER_ADMIN)
+  @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN)
   @Mutation(() => CommonResponse)
   AdminUserRemove(@Args() request: AdminRemoveArgs): Promise<CommonResponse> {
     return this.userService.remove(request)

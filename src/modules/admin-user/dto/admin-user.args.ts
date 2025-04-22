@@ -20,8 +20,8 @@ export class AdminUserCreateArgs {
   @Field({ nullable: true })
   idTelegram?: string
 
-  @Field(() => gameDb.datatypes.AdminRoleEnum, { nullable: true })
-  role?: gameDb.datatypes.AdminRoleEnum
+  @Field(() => gameDb.datatypes.UserRoleEnum, { nullable: true })
+  role?: gameDb.datatypes.UserRoleEnum
 
   @IsEmail()
   @Field()
