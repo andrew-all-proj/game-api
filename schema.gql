@@ -47,10 +47,10 @@ type Mutation {
   AdminUserLogin(email: String!, password: String!): AdminUserLogin!
   AdminUserRemove(id: String!): CommonResponse!
   AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: UserRoleEnum, surname: String): AdminUser!
-  UserCreate(email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, name: String, nameProfessor: String, phone: String): User!
+  UserCreate(email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): User!
-  UserUpdate(email: String, id: String!, idTelegram: String, name: String, nameProfessor: String, phone: String): User!
+  UserUpdate(email: String, id: String!, idTelegram: String, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
 }
 
 type Query {
@@ -67,6 +67,7 @@ type User {
   idTelegram: String
   isEmailVerified: Boolean
   isPhoneVerified: Boolean
+  isRegistered: Boolean
   name: String
   nameProfessor: String
   phone: String
@@ -75,6 +76,7 @@ type User {
 
 type UserLogin {
   id: String
+  isRegistered: Boolean
   nameProfessor: String
   token: String
 }

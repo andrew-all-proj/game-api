@@ -27,6 +27,9 @@ export class User {
   isPhoneVerified: boolean
 
   @Field({ nullable: true })
+  isRegistered: boolean
+
+  @Field({ nullable: true })
   updatedAt?: Date
 
   @Field({ nullable: true })
@@ -43,6 +46,9 @@ export class UserLogin {
 
   @Field({ nullable: true })
   nameProfessor: string
+
+  @Field({ nullable: true })
+  isRegistered: boolean
 }
 
 @ObjectType()

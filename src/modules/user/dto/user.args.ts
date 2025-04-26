@@ -22,6 +22,8 @@ export class UserCreateArgs {
   @Field({ nullable: true })
   idTelegram: string
 
+  @IsEmail()
+  @IsOptional()
   @Field({ nullable: true })
   email: string
 
@@ -33,6 +35,9 @@ export class UserCreateArgs {
 
   @Field({ nullable: true })
   isPhoneVerified: boolean
+
+  @Field({ nullable: true })
+  isRegistered: boolean
 }
 
 @ArgsType()
@@ -67,6 +72,9 @@ export class UserUpdateArgs {
 
   @Field({ nullable: true })
   phone: string
+
+  @Field({ nullable: true })
+  isRegistered: boolean
 }
 
 @ArgsType()

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import * as gameDb from 'game-db'
 import { ValidationPipe } from '@nestjs/common'
+import config from './config'
 
 async function bootstrap() {
   try {
@@ -17,6 +18,6 @@ async function bootstrap() {
   app.enableCors()
 
   app.useGlobalPipes(new ValidationPipe())
-  await app.listen(process.env.PORT ?? 3000)
+  await await app.listen(config.port, '0.0.0.0')
 }
 bootstrap()

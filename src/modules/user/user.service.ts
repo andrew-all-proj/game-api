@@ -53,6 +53,7 @@ export class UserService {
     const token = this.jwtService.sign(payload)
 
     return {
+      isRegistered: user.isRegistered,
       token: token,
       id: user.id,
       nameProfessor: user.nameProfessor,
