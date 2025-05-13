@@ -32,6 +32,16 @@ type CommonResponse {
   success: Boolean
 }
 
+enum ContentTypeEnum {
+  AVATAR_PROFESSOR
+  MONSTER
+}
+
+input ContentTypeFilter {
+  eq: ContentTypeEnum
+  in: [ContentTypeEnum!]
+}
+
 """
 A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date-time format.
 """
@@ -42,11 +52,37 @@ type ErrorResponse {
   message: String
 }
 
+type File {
+  contentType: ContentTypeEnum
+  createdAt: DateTime
+  description: String
+  fileType: FileTypeEnum
+  id: String
+  name: String
+  updatedAt: DateTime
+  url: String
+}
+
+enum FileTypeEnum {
+  AUDIO
+  IMAGE
+  TEXT
+  VIDEO
+}
+
+type FilesList {
+  items: [File!]
+  totalCount: Float
+}
+
 type Mutation {
   AdminUserCreate(email: String!, idTelegram: String, name: String!, password: String!, role: UserRoleEnum, surname: String): AdminUser!
   AdminUserLogin(email: String!, password: String!): AdminUserLogin!
   AdminUserRemove(id: String!): CommonResponse!
   AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: UserRoleEnum, surname: String): AdminUser!
+  FileCreate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, name: String, url: String): File!
+  FileRemove(id: String!): CommonResponse!
+  FileUpdate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, id: String!, name: String, url: String): File!
   UserCreate(email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): User!
@@ -55,9 +91,22 @@ type Mutation {
 
 type Query {
   AdminUser(id: String!): AdminUser!
-  AdminUsersList(limit: Float!, offset: Float!): AdminUsersList!
+  AdminUsersList(limit: Float!, offset: Float!, sortOrder: SortOrderEnum): AdminUsersList!
+  File(id: String!): File!
+  Files(contentType: ContentTypeFilter, description: StringFilter, id: StringFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): FilesList!
   User(id: String!): User!
-  Users(limit: Float!, offset: Float!): UsersList!
+  Users(limit: Float!, offset: Float!, sortOrder: SortOrderEnum): UsersList!
+}
+
+enum SortOrderEnum {
+  ASC
+  DESC
+}
+
+input StringFilter {
+  eq: String
+  in: [String!]
+  like: String
 }
 
 type User {

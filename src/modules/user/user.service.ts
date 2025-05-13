@@ -62,7 +62,7 @@ export class UserService {
 
   async create(args: UserCreateArgs): Promise<User> {
     try {
-      return gameDb.Entities.User.create({ ...args })
+      return gameDb.Entities.User.create({ ...args }).save()
     } catch (err) {
       console.log('Login error:', err)
       throw new BadRequestException('Create user error')
