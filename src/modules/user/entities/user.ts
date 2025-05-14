@@ -1,4 +1,5 @@
-import { ObjectType, Field, Int } from '@nestjs/graphql'
+import { ObjectType, Field } from '@nestjs/graphql'
+import { File } from '../../../modules/file/entities/file'
 
 @ObjectType()
 export class User {
@@ -30,6 +31,12 @@ export class User {
   isRegistered: boolean
 
   @Field({ nullable: true })
+  avatarFileId: string
+
+  @Field(() => File, { nullable: true })
+  avatar: File
+
+  @Field({ nullable: true })
   updatedAt?: Date
 
   @Field({ nullable: true })
@@ -49,6 +56,9 @@ export class UserLogin {
 
   @Field({ nullable: true })
   isRegistered: boolean
+
+  @Field(() => File, { nullable: true })
+  avatar: File
 }
 
 @ObjectType()

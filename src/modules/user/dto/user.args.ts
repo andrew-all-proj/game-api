@@ -38,6 +38,11 @@ export class UserCreateArgs {
 
   @Field({ nullable: true })
   isRegistered: boolean
+
+  @IsUUID()
+  @IsOptional()
+  @Field({ nullable: true })
+  avatarFileId: string
 }
 
 @ArgsType()
@@ -75,6 +80,11 @@ export class UserUpdateArgs {
 
   @Field({ nullable: true })
   isRegistered: boolean
+
+  @IsUUID()
+  @IsOptional()
+  @Field({ nullable: true })
+  avatarFileId: string
 }
 
 @ArgsType()

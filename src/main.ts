@@ -2,11 +2,17 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import * as gameDb from 'game-db'
 import { ValidationPipe } from '@nestjs/common'
+import { DataSource } from 'typeorm'
 import config from './config'
 
 async function bootstrap() {
   try {
-    await gameDb.AppDataSource.initialize()
+    let dataSourceOptions = { ...gameDb.AppDataSource.options }
+    if (config.local) {
+      dataSourceOptions = { ...gameDb.AppDataSource.options, logging: true }
+    }
+    const dataSource = new DataSource(dataSourceOptions)
+    await dataSource.initialize()
     console.log('Database connected')
   } catch (error) {
     console.error('Database connection failed', error)

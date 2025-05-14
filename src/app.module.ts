@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common'
 import { AppController } from './app.controller'
 import { AppService } from './app.service'
+import { FileModule } from './modules/file/file.module'
 import { UserModule } from './modules/user/user.module'
 import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
@@ -10,6 +11,7 @@ import './modules/register-enum-type'
 @Module({
   imports: [
     AdminUserModule,
+    FileModule,
     UserModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
