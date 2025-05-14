@@ -83,10 +83,10 @@ type Mutation {
   FileCreate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, name: String, url: String): File!
   FileRemove(id: String!): CommonResponse!
   FileUpdate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, id: String!, name: String, url: String): File!
-  UserCreate(email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
+  UserCreate(avatarFileId: String, email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): User!
-  UserUpdate(email: String, id: String!, idTelegram: String, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
+  UserUpdate(avatarFileId: String, email: String, id: String!, idTelegram: String, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
 }
 
 type Query {
@@ -110,6 +110,8 @@ input StringFilter {
 }
 
 type User {
+  avatar: File
+  avatarFileId: String
   createdAt: DateTime
   email: String
   id: String
@@ -124,6 +126,7 @@ type User {
 }
 
 type UserLogin {
+  avatar: File
   id: String
   isRegistered: Boolean
   nameProfessor: String

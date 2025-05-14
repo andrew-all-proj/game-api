@@ -13,7 +13,7 @@ export class UserService {
   constructor(private jwtService: JwtService) {}
 
   async login(args: UserLoginArgs): Promise<UserLogin> {
-    let user
+    let user: gameDb.Entities.User | null
     try {
       const valid = isValid(args.initData, config.botToken)
 
@@ -35,7 +35,10 @@ export class UserService {
         throw new BadRequestException('User not found in initData')
       }
 
-      user = await gameDb.Entities.User.findOne({ where: { idTelegram: tlgId.toString() } })
+      user = await gameDb.Entities.User.findOne({
+        where: { idTelegram: tlgId.toString() },
+        relations: ['avatar'],
+      })
     } catch (err) {
       console.log('Login error:', err)
       throw new BadRequestException('User initData error')
@@ -57,6 +60,7 @@ export class UserService {
       token: token,
       id: user.id,
       nameProfessor: user.nameProfessor,
+      avatar: user.avatar,
     }
   }
 
@@ -102,7 +106,7 @@ export class UserService {
       userIdToUpdate = ctx.req.user?.id
     }
 
-    const user = await gameDb.Entities.User.findOne({ where: { id: userIdToUpdate } })
+    const user = await gameDb.Entities.User.findOne({ where: { id: userIdToUpdate }, relations: ['avatar'] })
 
     if (!user) {
       throw new BadRequestException('User not found')
