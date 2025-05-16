@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Context } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Context, Info } from '@nestjs/graphql'
 import { UserService } from './user.service'
 import { User, UserLogin, UsersList } from './entities/user'
 import { UserArgs, UserCreateArgs, UserLoginArgs, UserRemoveArgs, UsersListArgs, UserUpdateArgs } from './dto/user.args'
@@ -7,6 +7,7 @@ import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'
 import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
+import { GraphQLResolveInfo } from 'graphql'
 
 @Resolver(() => User)
 export class UserResolver {
@@ -27,8 +28,8 @@ export class UserResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN, gameDb.datatypes.UserRoleEnum.ADMIN)
   @Query(() => UsersList)
-  Users(@Args() args: UsersListArgs): Promise<UsersList> {
-    return this.userService.findAll(args)
+  Users(@Args() args: UsersListArgs, @Info() info: GraphQLResolveInfo): Promise<UsersList> {
+    return this.userService.findAll(args, info)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -38,8 +39,8 @@ export class UserResolver {
     gameDb.datatypes.UserRoleEnum.USER,
   )
   @Query(() => User)
-  User(@Args() args: UserArgs, @Context() ctx: GraphQLContext): Promise<User> {
-    return this.userService.findOne(args, ctx)
+  User(@Args() args: UserArgs, @Context() ctx: GraphQLContext, @Info() info: GraphQLResolveInfo): Promise<User> {
+    return this.userService.findOne(args, ctx, info)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -49,8 +50,12 @@ export class UserResolver {
     gameDb.datatypes.UserRoleEnum.USER,
   )
   @Mutation(() => User)
-  UserUpdate(@Args() args: UserUpdateArgs, @Context() ctx: GraphQLContext): Promise<User> {
-    return this.userService.update(args, ctx)
+  UserUpdate(
+    @Args() args: UserUpdateArgs,
+    @Context() ctx: GraphQLContext,
+    @Info() info: GraphQLResolveInfo,
+  ): Promise<User> {
+    return this.userService.update(args, ctx, info)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)

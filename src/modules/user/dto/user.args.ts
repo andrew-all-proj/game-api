@@ -1,6 +1,7 @@
 import { Field, ArgsType } from '@nestjs/graphql'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
 import { IsEmail, IsOptional, IsUUID } from 'class-validator'
+import { StringFilter, UuidFilter } from '../../../functions/filters/filters'
 
 @ArgsType()
 export class UserLoginArgs {
@@ -46,7 +47,15 @@ export class UserCreateArgs {
 }
 
 @ArgsType()
-export class UsersListArgs extends PaginationArgs {}
+export class UsersListArgs extends PaginationArgs {
+  @IsOptional()
+  @Field({ nullable: true })
+  id: UuidFilter
+
+  @IsOptional()
+  @Field({ nullable: true })
+  name: StringFilter
+}
 
 @ArgsType()
 export class UserArgs {

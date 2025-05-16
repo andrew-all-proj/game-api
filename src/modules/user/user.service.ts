@@ -7,6 +7,10 @@ import { parse, isValid } from '@telegram-apps/init-data-node'
 import config from '../../config'
 import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
+import { buildQueryFilters } from '../../functions/filters/build-query-filters'
+import { SortOrderEnum } from '../../datatypes/common/SortOrderEnum'
+import { GraphQLResolveInfo } from 'graphql'
+import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
 
 @Injectable()
 export class UserService {
@@ -73,31 +77,44 @@ export class UserService {
     }
   }
 
-  async findAll(args: UsersListArgs): Promise<UsersList> {
-    const { offset, limit } = args || {}
+  async findAll(args: UsersListArgs, info: GraphQLResolveInfo): Promise<UsersList> {
+    const { offset, limit, sortOrder = SortOrderEnum.DESC } = args || {}
 
+    const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
+    const where = buildQueryFilters(args)
     const [items, totalCount] = await gameDb.Entities.User.findAndCount({
+      where: { ...where },
+      order: {
+        createdAt: sortOrder,
+      },
       skip: offset,
       take: limit,
+      relations: relations,
+      select: [...selectedFields, 'createdAt'],
     })
 
     return { items, totalCount }
   }
 
-  async findOne(args: UserArgs, ctx: GraphQLContext): Promise<User> {
+  async findOne(args: UserArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<User> {
     const role = ctx.req.user?.role
     let userId = args.id
     if (role === gameDb.datatypes.UserRoleEnum.USER) {
       userId = ctx.req.user.id
     }
-    const user = await gameDb.Entities.User.findOne({ where: { id: userId } })
+    const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
+    const user = await gameDb.Entities.User.findOne({
+      where: { id: userId },
+      relations: relations,
+      select: selectedFields,
+    })
     if (!user) {
       throw new BadRequestException('User not found')
     }
     return user
   }
 
-  async update(args: UserUpdateArgs, ctx: GraphQLContext): Promise<User> {
+  async update(args: UserUpdateArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<User> {
     const role = ctx.req.user?.role
 
     let userIdToUpdate = args.id
@@ -106,7 +123,12 @@ export class UserService {
       userIdToUpdate = ctx.req.user?.id
     }
 
-    const user = await gameDb.Entities.User.findOne({ where: { id: userIdToUpdate }, relations: ['avatar'] })
+    const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
+    const user = await gameDb.Entities.User.findOne({
+      where: { id: userIdToUpdate },
+      relations: relations,
+      select: selectedFields,
+    })
 
     if (!user) {
       throw new BadRequestException('User not found')

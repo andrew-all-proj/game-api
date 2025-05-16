@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Info } from '@nestjs/graphql'
 import { FileService } from './file.service'
 import { File, FilesList } from './entities/file'
 import { FileArgs, FileCreateArgs, FileRemoveArgs, FilesListArgs, FileUpdateArgs } from './dto/file.args'
@@ -6,6 +6,7 @@ import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
+import { GraphQLResolveInfo } from 'graphql'
 
 @Resolver(() => File)
 export class FileResolver {
@@ -18,8 +19,8 @@ export class FileResolver {
     gameDb.datatypes.UserRoleEnum.USER,
   )
   @Query(() => FilesList)
-  Files(@Args() args: FilesListArgs): Promise<FilesList> {
-    return this.fileService.findAll(args)
+  Files(@Args() args: FilesListArgs, @Info() info: GraphQLResolveInfo): Promise<FilesList> {
+    return this.fileService.findAll(args, info)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -29,8 +30,8 @@ export class FileResolver {
     gameDb.datatypes.UserRoleEnum.USER,
   )
   @Query(() => File)
-  File(@Args() args: FileArgs): Promise<File> {
-    return this.fileService.findOne(args)
+  File(@Args() args: FileArgs, @Info() info: GraphQLResolveInfo): Promise<File> {
+    return this.fileService.findOne(args, info)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)

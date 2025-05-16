@@ -91,11 +91,11 @@ type Mutation {
 
 type Query {
   AdminUser(id: String!): AdminUser!
-  AdminUsersList(limit: Float!, offset: Float!, sortOrder: SortOrderEnum): AdminUsersList!
+  AdminUsersList(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): AdminUsersList!
   File(id: String!): File!
-  Files(contentType: ContentTypeFilter, description: StringFilter, id: StringFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): FilesList!
+  Files(contentType: ContentTypeFilter, description: StringFilter, id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): FilesList!
   User(id: String!): User!
-  Users(limit: Float!, offset: Float!, sortOrder: SortOrderEnum): UsersList!
+  Users(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): UsersList!
 }
 
 enum SortOrderEnum {
@@ -143,4 +143,9 @@ enum UserRoleEnum {
 type UsersList {
   items: [User!]
   totalCount: Float
+}
+
+input UuidFilter {
+  eq: String
+  in: [String!]
 }

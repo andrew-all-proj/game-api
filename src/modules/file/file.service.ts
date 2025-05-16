@@ -5,14 +5,17 @@ import { FileArgs, FileCreateArgs, FileRemoveArgs, FilesListArgs, FileUpdateArgs
 import { buildQueryFilters } from '../../functions/filters/build-query-filters'
 import { SortOrderEnum } from '../../datatypes/common/SortOrderEnum'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
+import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
+import { GraphQLResolveInfo } from 'graphql'
 
 @Injectable()
 export class FileService {
   constructor() {}
 
-  async findAll(args: FilesListArgs): Promise<FilesList> {
+  async findAll(args: FilesListArgs, info: GraphQLResolveInfo): Promise<FilesList> {
     const { offset, limit, sortOrder = SortOrderEnum.DESC } = args || {}
 
+    const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.File)
     const where = buildQueryFilters<File>(args)
     const [items, totalCount] = await gameDb.Entities.File.findAndCount({
       where: { ...where },
@@ -21,13 +24,19 @@ export class FileService {
       },
       skip: offset,
       take: limit,
+      relations: relations,
+      select: [...selectedFields, 'createdAt'],
     })
-
     return { items, totalCount }
   }
 
-  async findOne(args: FileArgs): Promise<File> {
-    const file = await gameDb.Entities.File.findOne({ where: { id: args.id } })
+  async findOne(args: FileArgs, info: GraphQLResolveInfo): Promise<File> {
+    const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.File)
+    const file = await gameDb.Entities.File.findOne({
+      where: { id: args.id },
+      relations: relations,
+      select: selectedFields,
+    })
     if (!file) {
       throw new BadRequestException('File not found')
     }

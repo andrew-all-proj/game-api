@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Int } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Int, Info } from '@nestjs/graphql'
 import { AdminUserService } from './admin-user.service'
 import {
   AdminRemoveArgs,
@@ -13,6 +13,7 @@ import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
+import { GraphQLResolveInfo } from 'graphql'
 
 @Resolver(() => AdminUser)
 export class AdminUserResolver {
@@ -33,15 +34,15 @@ export class AdminUserResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN, gameDb.datatypes.UserRoleEnum.ADMIN)
   @Query(() => AdminUsersList)
-  AdminUsersList(@Args() request: AdminUsersListArgs): Promise<AdminUsersList> {
-    return this.userService.findAll(request)
+  AdminUsersList(@Args() request: AdminUsersListArgs, @Info() info: GraphQLResolveInfo): Promise<AdminUsersList> {
+    return this.userService.findAll(request, info)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN, gameDb.datatypes.UserRoleEnum.ADMIN)
   @Query(() => AdminUser)
-  AdminUser(@Args() request: AdminUserArgs) {
-    return this.userService.findOne(request)
+  AdminUser(@Args() request: AdminUserArgs, @Info() info: GraphQLResolveInfo) {
+    return this.userService.findOne(request, info)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
