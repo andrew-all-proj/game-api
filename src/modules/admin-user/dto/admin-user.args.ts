@@ -1,7 +1,8 @@
-import { InputType, Field, Int, PartialType, ArgsType } from '@nestjs/graphql'
-import { IsEmail, IsString, IsUUID, MinLength } from 'class-validator'
+import { Field, PartialType, ArgsType } from '@nestjs/graphql'
+import { IsEmail, IsOptional, IsString, IsUUID, MinLength } from 'class-validator'
 import * as gameDb from 'game-db'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
+import { StringFilter, UuidFilter } from '../../../functions/filters/filters'
 
 @ArgsType()
 export class AdminUserCreateArgs {
@@ -62,4 +63,12 @@ export class AdminRemoveArgs {
 }
 
 @ArgsType()
-export class AdminUsersListArgs extends PaginationArgs {}
+export class AdminUsersListArgs extends PaginationArgs {
+  @IsOptional()
+  @Field({ nullable: true })
+  id: UuidFilter
+
+  @IsOptional()
+  @Field({ nullable: true })
+  name: StringFilter
+}

@@ -11,8 +11,11 @@ import { AuthService } from './auth.service'
 import { AdminUser, AdminUserLogin, AdminUsersList } from './entities/admin-user.entity'
 import { BadRequestException } from '@nestjs/common'
 import * as bcrypt from 'bcrypt'
-import * as dbGame from 'game-db'
+import * as gameDb from 'game-db'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
+import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
+import { buildQueryFilters } from '../../functions/filters/build-query-filters'
+import { GraphQLResolveInfo } from 'graphql'
 
 @Injectable()
 export class AdminUserService {
@@ -23,7 +26,7 @@ export class AdminUserService {
   }
 
   async create(query: AdminUserCreateArgs): Promise<AdminUser> {
-    const existingUser = await dbGame.Entities.AdminUser.findOne({
+    const existingUser = await gameDb.Entities.AdminUser.findOne({
       where: { email: query.email },
     })
 
@@ -31,25 +34,38 @@ export class AdminUserService {
       throw new BadRequestException('User with this email already exists')
     }
 
-    const newUser = dbGame.Entities.AdminUser.create({ ...query, password: bcrypt.hashSync(query.password, 10) })
+    const newUser = gameDb.Entities.AdminUser.create({ ...query, password: bcrypt.hashSync(query.password, 10) })
     await newUser.save()
 
     return newUser
   }
 
-  async findAll(query: AdminUsersListArgs): Promise<AdminUsersList> {
-    const { offset, limit } = query || {}
+  async findAll(args: AdminUsersListArgs, info: GraphQLResolveInfo): Promise<AdminUsersList> {
+    const { offset, limit, sortOrder } = args || {}
 
-    const [items, totalCount] = await dbGame.Entities.AdminUser.findAndCount({
+    const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.AdminUser)
+    const where = buildQueryFilters(args)
+    const [items, totalCount] = await gameDb.Entities.AdminUser.findAndCount({
+      where: { ...where },
+      order: {
+        createdAt: sortOrder,
+      },
       skip: offset,
       take: limit,
+      relations: relations,
+      select: [...selectedFields, 'createdAt'],
     })
 
     return { items, totalCount }
   }
 
-  async findOne(query: AdminUserArgs): Promise<AdminUser> {
-    const user = await dbGame.Entities.AdminUser.findOne({ where: { id: query.id } })
+  async findOne(query: AdminUserArgs, info: GraphQLResolveInfo): Promise<AdminUser> {
+    const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.AdminUser)
+    const user = await gameDb.Entities.AdminUser.findOne({
+      where: { id: query.id },
+      relations: relations,
+      select: selectedFields,
+    })
     if (!user) {
       throw new BadRequestException('User not found')
     }
@@ -57,7 +73,7 @@ export class AdminUserService {
   }
 
   async update(query: AdminUserUpdateArgs): Promise<AdminUser> {
-    const user = await dbGame.Entities.AdminUser.findOne({ where: { id: query.id } })
+    const user = await gameDb.Entities.AdminUser.findOne({ where: { id: query.id } })
 
     if (!user) {
       throw new BadRequestException('User not found')
@@ -79,7 +95,7 @@ export class AdminUserService {
   }
 
   async remove(query: AdminRemoveArgs): Promise<CommonResponse> {
-    const user = await dbGame.Entities.AdminUser.findOne({ where: { id: query.id } })
+    const user = await gameDb.Entities.AdminUser.findOne({ where: { id: query.id } })
     if (!user) {
       throw new BadRequestException('User not found')
     }
