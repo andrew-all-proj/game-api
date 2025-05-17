@@ -143,7 +143,7 @@ export class UserService {
   }
 
   async remove(args: UserRemoveArgs): Promise<CommonResponse> {
-    const user = await gameDb.Entities.AdminUser.findOne({ where: { id: args.id } })
+    const user = await gameDb.Entities.User.findOne({ where: { id: args.id } })
     if (!user) {
       throw new BadRequestException('User not found')
     }

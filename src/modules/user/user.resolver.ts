@@ -60,7 +60,7 @@ export class UserResolver {
 
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN, gameDb.datatypes.UserRoleEnum.ADMIN)
-  @Mutation(() => User)
+  @Mutation(() => CommonResponse)
   UserRemove(@Args() args: UserRemoveArgs): Promise<CommonResponse> {
     return this.userService.remove(args)
   }

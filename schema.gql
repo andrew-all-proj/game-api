@@ -33,8 +33,8 @@ type CommonResponse {
 }
 
 enum ContentTypeEnum {
+  AVATAR_MONSTER
   AVATAR_PROFESSOR
-  MONSTER
 }
 
 input ContentTypeFilter {
@@ -75,6 +75,22 @@ type FilesList {
   totalCount: Float
 }
 
+type Monster {
+  bodyMass: Float
+  createdAt: DateTime
+  files: [File!]
+  id: String
+  level: Float
+  name: String
+  updatedAt: DateTime
+  userId: String
+}
+
+type MonstersList {
+  items: [Monster!]
+  totalCount: Float
+}
+
 type Mutation {
   AdminUserCreate(email: String!, idTelegram: String, name: String!, password: String!, role: UserRoleEnum, surname: String): AdminUser!
   AdminUserLogin(email: String!, password: String!): AdminUserLogin!
@@ -83,9 +99,12 @@ type Mutation {
   FileCreate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, name: String, url: String): File!
   FileRemove(id: String!): CommonResponse!
   FileUpdate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, id: String!, name: String, url: String): File!
+  MonsterCreate(fileId: String, name: String, userId: String): Monster!
+  MonsterRemove(id: String!, userId: String): CommonResponse!
+  MonsterUpdate(id: String!, name: String, userId: String): Monster!
   UserCreate(avatarFileId: String, email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
-  UserRemove(id: String!): User!
+  UserRemove(id: String!): CommonResponse!
   UserUpdate(avatarFileId: String, email: String, id: String!, idTelegram: String, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
 }
 
@@ -94,6 +113,8 @@ type Query {
   AdminUsersList(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): AdminUsersList!
   File(id: String!): File!
   Files(contentType: ContentTypeFilter, description: StringFilter, id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): FilesList!
+  Monster(id: String!): Monster!
+  Monsters(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, userId: UuidFilter): MonstersList!
   User(id: String!): User!
   Users(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): UsersList!
 }

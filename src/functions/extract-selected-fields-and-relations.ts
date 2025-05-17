@@ -20,7 +20,7 @@ export function extractSelectedFieldsAndRelations<T>(
 
       const name = selection.name.value as keyof T
 
-      if (['items', 'totalCount'].includes(name as string) && !path) {
+      if (['items', 'totalCount', '__typename'].includes(name as string) && !path) {
         if (selection.selectionSet) {
           traverse(selection.selectionSet.selections, path)
         }
@@ -32,7 +32,6 @@ export function extractSelectedFieldsAndRelations<T>(
         if (relationNames.includes(name as string)) {
           relations.add(root)
         }
-        traverse(selection.selectionSet.selections, name as string)
       } else {
         selectedFields.add(name)
       }
