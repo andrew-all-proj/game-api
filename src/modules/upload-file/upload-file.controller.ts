@@ -7,6 +7,7 @@ import * as gameDb from 'game-db'
 import { v4 as uuidv4 } from 'uuid'
 import { Request } from 'express'
 import { UploadFileDto } from './upload-file.dto'
+import config from '../../config'
 
 interface UploadFileResponse {
   id: string
@@ -28,7 +29,7 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: '/home/andrew/game/game-file/files',
+        destination: config.fileUploadDir,
         filename: (req: Request, file, cb) => {
           const uniqueId = uuidv4()
           req['generatedFileId'] = uniqueId
