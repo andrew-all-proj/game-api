@@ -8,6 +8,8 @@ import { v4 as uuidv4 } from 'uuid'
 import { Request } from 'express'
 import { UploadFileDto } from './upload-file.dto'
 import config from '../../config'
+import * as fs from 'fs'
+import * as path from 'path'
 
 interface UploadFileResponse {
   id: string
@@ -29,7 +31,13 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: config.fileUploadDir,
+        destination: (req, file, cb) => {
+          if (!fs.existsSync(config.fileUploadDir)) {
+            fs.mkdirSync(config.fileUploadDir, { recursive: true })
+          }
+
+          cb(null, config.fileUploadDir)
+        },
         filename: (req: Request, file, cb) => {
           const uniqueId = uuidv4()
           req['generatedFileId'] = uniqueId

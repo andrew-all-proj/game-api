@@ -6,6 +6,10 @@ if (!process.env.BOT_TOKEN) {
   throw new Error('BOT_TOKEN not specified in .env')
 }
 
+if (!process.env.FILE_UPLOAD_DIR) {
+  throw new Error('FILE_UPLOAD_DIR not specified in .env')
+}
+
 export default {
   botToken: process.env.BOT_TOKEN,
   local: process.env.LOCAL,
