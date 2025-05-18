@@ -10,4 +10,6 @@ export default {
   botToken: process.env.BOT_TOKEN,
   local: process.env.LOCAL,
   port: Number(process.env.PORT) || 3000,
+  fileUrlPrefix: process.env.FILE_URL_PREFIX,
+  fileUploadDir: process.env.FILE_UPLOAD_DIR,
 }
