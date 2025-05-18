@@ -1,7 +1,7 @@
-import { Resolver, Query, Mutation, Args, Info } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Info, ResolveField, Parent } from '@nestjs/graphql'
 import { FileService } from './file.service'
 import { File, FilesList } from './entities/file'
-import { FileArgs, FileCreateArgs, FileRemoveArgs, FilesListArgs, FileUpdateArgs } from './dto/file.args'
+import { FileArgs, FileRemoveArgs, FilesListArgs, FileUpdateArgs } from './dto/file.args'
 import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'
@@ -37,13 +37,6 @@ export class FileResolver {
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN)
   @Mutation(() => File)
-  FileCreate(@Args() args: FileCreateArgs): Promise<File> {
-    return this.fileService.create(args)
-  }
-
-  @UseGuards(GqlAuthGuard, RolesGuard)
-  @Roles(gameDb.datatypes.UserRoleEnum.SUPER_ADMIN)
-  @Mutation(() => File)
   FileUpdate(@Args() args: FileUpdateArgs): Promise<File> {
     return this.fileService.update(args)
   }
@@ -53,5 +46,11 @@ export class FileResolver {
   @Mutation(() => CommonResponse)
   FileRemove(@Args() args: FileRemoveArgs): Promise<CommonResponse> {
     return this.fileService.remove(args)
+  }
+
+  @ResolveField(() => String)
+  url(@Parent() file: File): string {
+    const baseUrl = process.env.FILE_URL_PREFIX
+    return `${baseUrl}${file.url}`
   }
 }

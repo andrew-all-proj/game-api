@@ -96,7 +96,6 @@ type Mutation {
   AdminUserLogin(email: String!, password: String!): AdminUserLogin!
   AdminUserRemove(id: String!): CommonResponse!
   AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: UserRoleEnum, surname: String): AdminUser!
-  FileCreate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, name: String, url: String): File!
   FileRemove(id: String!): CommonResponse!
   FileUpdate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, id: String!, name: String, url: String): File!
   MonsterCreate(fileId: String, name: String, userId: String): Monster!
