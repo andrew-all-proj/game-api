@@ -3,6 +3,7 @@ import { AppController } from './app.controller'
 import { AppService } from './app.service'
 import { FileModule } from './modules/file/file.module'
 import { UserModule } from './modules/user/user.module'
+import { UploadModule } from './modules/upload-file/upload-file.module'
 import { MonsterModule } from './modules/monster/monster.module'
 import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
@@ -15,6 +16,7 @@ import './modules/register-enum-type'
     FileModule,
     MonsterModule,
     UserModule,
+    UploadModule,
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: 'schema.gql',

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { File, FilesList } from './entities/file'
 import * as gameDb from 'game-db'
-import { FileArgs, FileCreateArgs, FileRemoveArgs, FilesListArgs, FileUpdateArgs } from './dto/file.args'
+import { FileArgs, FileRemoveArgs, FilesListArgs, FileUpdateArgs } from './dto/file.args'
 import { buildQueryFilters } from '../../functions/filters/build-query-filters'
 import { SortOrderEnum } from '../../datatypes/common/SortOrderEnum'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
@@ -41,15 +41,6 @@ export class FileService {
       throw new BadRequestException('File not found')
     }
     return file
-  }
-
-  async create(args: FileCreateArgs): Promise<File> {
-    try {
-      return gameDb.Entities.File.create({ ...args }).save()
-    } catch (err) {
-      console.log('Login error:', err)
-      throw new BadRequestException('Create file error')
-    }
   }
 
   async update(args: FileUpdateArgs): Promise<File> {

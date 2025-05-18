@@ -32,7 +32,11 @@ export class FileArgs {
 }
 
 @ArgsType()
-export class FileCreateArgs {
+export class FileUpdateArgs {
+  @IsUUID()
+  @Field()
+  id: string
+
   @Field({ nullable: true })
   name: string
 
@@ -48,13 +52,6 @@ export class FileCreateArgs {
 
   @Field(() => gameDb.datatypes.ContentTypeEnum, { nullable: true })
   contentType?: gameDb.datatypes.ContentTypeEnum
-}
-
-@ArgsType()
-export class FileUpdateArgs extends FileCreateArgs {
-  @IsUUID()
-  @Field()
-  id: string
 }
 
 @ArgsType()
