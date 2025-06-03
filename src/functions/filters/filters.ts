@@ -27,7 +27,26 @@ export class StringFilter {
 
   @Field(() => [String], { nullable: true })
   @IsArray()
-  @IsUUID('all', { each: true })
   @IsOptional()
   in?: string[]
+}
+
+@InputType()
+export class NumberFilter {
+  @Field({ nullable: true })
+  @IsOptional()
+  eq?: number
+
+  @Field({ nullable: true })
+  @IsOptional()
+  gte?: number
+
+  @Field({ nullable: true })
+  @IsOptional()
+  lte?: number;
+
+  @Field(() => [String], { nullable: true })
+  @IsArray()
+  @IsOptional()
+  in?: number[]
 }

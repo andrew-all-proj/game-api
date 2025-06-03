@@ -1,7 +1,7 @@
 import { Field, ArgsType } from '@nestjs/graphql'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
 import { IsOptional, IsUUID } from 'class-validator'
-import { StringFilter, UuidFilter } from '../../../functions/filters/filters'
+import { NumberFilter, StringFilter, UuidFilter } from '../../../functions/filters/filters'
 import { ContentTypeFilter } from '../../../functions/filters/enum-filters'
 import * as gameDb from 'game-db'
 
@@ -14,6 +14,10 @@ export class FilesListArgs extends PaginationArgs {
   @IsOptional()
   @Field({ nullable: true })
   name: StringFilter
+
+  @IsOptional()
+  @Field({ nullable: true })
+  version: NumberFilter
 
   @IsOptional()
   @Field({ nullable: true })

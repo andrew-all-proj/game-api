@@ -1,21 +1,47 @@
-import { Field, ArgsType } from '@nestjs/graphql'
+import { Field, ArgsType, ObjectType, InputType } from '@nestjs/graphql'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
-import { IsOptional, IsUUID } from 'class-validator'
+import { IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator'
 import { StringFilter, UuidFilter } from '../../../functions/filters/filters'
+
+@InputType()
+export class SelectedPartsKey {
+  @Field()
+  @IsString()
+  @IsNotEmpty()
+  headKey: string
+
+  @Field()
+  @IsString()
+  @IsNotEmpty()
+  bodyKey: string
+
+  @Field()
+  @IsString()
+  @IsNotEmpty()
+  leftArmKey: string
+
+  @Field({ nullable: true })
+  @IsString()
+  rightArmKey?: string
+}
 
 @ArgsType()
 export class MonsterCreateArgs {
   @Field({ nullable: true })
-  name: string
+  name?: string
 
   @IsUUID()
   @IsOptional()
   @Field({ nullable: true })
-  userId: string
+  userId?: string
 
   @IsUUID()
-  @Field({ nullable: true })
+  @Field()
   fileId: string
+
+  @Field(() => SelectedPartsKey)
+  @ValidateNested()
+  selectedPartsKey: SelectedPartsKey
 }
 
 @ArgsType()

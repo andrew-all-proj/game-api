@@ -10,6 +10,9 @@ export class File {
   name: string
 
   @Field({ nullable: true })
+  version: number
+
+  @Field({ nullable: true })
   description: string
 
   @Field({ nullable: true })
