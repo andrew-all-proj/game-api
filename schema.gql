@@ -35,6 +35,9 @@ type CommonResponse {
 enum ContentTypeEnum {
   AVATAR_MONSTER
   AVATAR_PROFESSOR
+  BASE_SPRITE_SHEET_MONSTERS
+  MAIN_SPRITE_SHEET_MONSTERS
+  SPRITE_SHEET_MONSTER
 }
 
 input ContentTypeFilter {
@@ -61,11 +64,13 @@ type File {
   name: String
   updatedAt: DateTime
   url: String
+  version: Float
 }
 
 enum FileTypeEnum {
   AUDIO
   IMAGE
+  JSON
   TEXT
   VIDEO
 }
@@ -98,7 +103,7 @@ type Mutation {
   AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: UserRoleEnum, surname: String): AdminUser!
   FileRemove(id: String!): CommonResponse!
   FileUpdate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, id: String!, name: String, url: String): File!
-  MonsterCreate(fileId: String, name: String, userId: String): Monster!
+  MonsterCreate(fileId: String!, name: String, selectedPartsKey: SelectedPartsKey!, userId: String): Monster!
   MonsterRemove(id: String!, userId: String): CommonResponse!
   MonsterUpdate(id: String!, name: String, userId: String): Monster!
   UserCreate(avatarFileId: String, email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
@@ -107,15 +112,29 @@ type Mutation {
   UserUpdate(avatarFileId: String, email: String, id: String!, idTelegram: String, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
 }
 
+input NumberFilter {
+  eq: Float
+  gte: Float
+  in: [String!]
+  lte: Float
+}
+
 type Query {
   AdminUser(id: String!): AdminUser!
   AdminUsersList(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): AdminUsersList!
   File(id: String!): File!
-  Files(contentType: ContentTypeFilter, description: StringFilter, id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): FilesList!
+  Files(contentType: ContentTypeFilter, description: StringFilter, id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, version: NumberFilter): FilesList!
   Monster(id: String!): Monster!
   Monsters(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, userId: UuidFilter): MonstersList!
   User(id: String!): User!
   Users(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): UsersList!
+}
+
+input SelectedPartsKey {
+  bodyKey: String!
+  headKey: String!
+  leftArmKey: String!
+  rightArmKey: String
 }
 
 enum SortOrderEnum {

@@ -9,7 +9,6 @@ import { Request } from 'express'
 import { UploadFileDto } from './upload-file.dto'
 import config from '../../config'
 import * as fs from 'fs'
-import * as path from 'path'
 
 interface UploadFileResponse {
   id: string
