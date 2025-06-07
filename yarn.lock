@@ -3932,9 +3932,9 @@ function-bind@^1.1.2:
   resolved "https://registry.yarnpkg.com/function-bind/-/function-bind-1.1.2.tgz#2c02d864d97f3ea6c8830c464cbd11ab6eab7a1c"
   integrity sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==
 
-"game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.0.9":
+"game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.1.0":
   version "0.0.2"
-  resolved "git+ssh://git@github.com/andrew-all-proj/game-db.git#7f451a0fe10a1bb4dcf1b73cc8267ef8c6d15b4d"
+  resolved "git+ssh://git@github.com/andrew-all-proj/game-db.git#c53f181d068f3653a08fcb06efe41d389515c28e"
   dependencies:
     dotenv "^16.5.0"
     pg "^8.14.1"

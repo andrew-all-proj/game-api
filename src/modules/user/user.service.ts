@@ -127,7 +127,7 @@ export class UserService {
     const user = await gameDb.Entities.User.findOne({
       where: { id: userIdToUpdate },
       relations: relations,
-      select: selectedFields,
+      select: [...selectedFields, 'avatarFileId'],
     })
 
     if (!user) {
@@ -135,9 +135,7 @@ export class UserService {
     }
 
     const { id, ...updateData } = args
-    Object.assign(user, updateData)
-
-    await gameDb.Entities.User.save(user)
+    await gameDb.Entities.User.update(userIdToUpdate, updateData)
 
     return user
   }
