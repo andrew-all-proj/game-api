@@ -1,4 +1,4 @@
-import { FindOptionsWhere, ILike, In, MoreThanOrEqual, LessThanOrEqual } from 'typeorm'
+import { FindOptionsWhere, ILike, In, MoreThanOrEqual, LessThanOrEqual, Not } from 'typeorm'
 
 export const buildQueryFilters = <T>(args: any): FindOptionsWhere<T> => {
   const where: FindOptionsWhere<T> = {}
@@ -13,6 +13,7 @@ export const buildQueryFilters = <T>(args: any): FindOptionsWhere<T> => {
     if (
       typeof filter === 'object' &&
       (filter.eq !== undefined ||
+        filter.neq !== undefined ||
         filter.like !== undefined ||
         filter.in !== undefined ||
         filter.gte !== undefined ||
@@ -20,6 +21,9 @@ export const buildQueryFilters = <T>(args: any): FindOptionsWhere<T> => {
     ) {
       if (filter.eq !== undefined) {
         where[key] = filter.eq
+      }
+      if (filter.neq !== undefined) {
+        where[key] = Not(filter.neq)
       }
       if (filter.like !== undefined) {
         where[key] = ILike(`%${filter.like}%`)

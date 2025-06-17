@@ -7,6 +7,7 @@ import { SortOrderEnum } from '../../datatypes/common/SortOrderEnum'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
 import { GraphQLResolveInfo } from 'graphql'
+import * as bcrypt from 'bcrypt'
 
 @Injectable()
 export class FileService {
@@ -51,9 +52,8 @@ export class FileService {
     }
 
     const { id, ...updateData } = args
-    Object.assign(file, updateData)
 
-    await gameDb.Entities.File.save(file)
+    await gameDb.Entities.File.save({ ...updateData })
 
     return file
   }

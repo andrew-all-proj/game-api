@@ -1,5 +1,5 @@
 import { Field, ArgsType } from '@nestjs/graphql'
-import { IsOptional } from 'class-validator'
+import { IsOptional, Max } from 'class-validator'
 import { SortOrderEnum } from '../common/SortOrderEnum'
 
 @ArgsType()
@@ -8,6 +8,7 @@ export class PaginationArgs {
   offset: number
 
   @Field()
+  @Max(50, { message: 'Limit not be 50' })
   limit: number
 
   @Field(() => SortOrderEnum, { nullable: true })

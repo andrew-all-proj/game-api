@@ -6,7 +6,11 @@ export class UuidFilter {
   @IsUUID()
   @Field({ nullable: true })
   @IsOptional()
-  eq?: string;
+  eq?: string
+
+  @Field({ nullable: true })
+  @IsOptional()
+  neq?: string;
 
   @Field(() => [String], { nullable: true })
   @IsArray()
@@ -36,6 +40,10 @@ export class NumberFilter {
   @Field({ nullable: true })
   @IsOptional()
   eq?: number
+
+  @Field({ nullable: true })
+  @IsOptional()
+  neq?: number
 
   @Field({ nullable: true })
   @IsOptional()

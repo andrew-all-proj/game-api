@@ -1,28 +1,25 @@
 import { ObjectType, Field } from '@nestjs/graphql'
-import { File } from '../../file/entities/file'
+import * as gameDb from 'game-db'
 
 @ObjectType()
-export class Monster {
+export class MonsterBattles {
   @Field({ nullable: true })
   id: string
 
   @Field({ nullable: true })
-  name?: string
+  challengerMonsterId: string
 
   @Field({ nullable: true })
-  bodyMass?: number
+  opponentMonsterId: string
 
   @Field({ nullable: true })
-  level?: number
+  winnerMonsterId: string
+
+  @Field(() => gameDb.datatypes.BattleStatusEnum, { nullable: true })
+  status?: gameDb.datatypes.BattleStatusEnum
 
   @Field({ nullable: true })
-  isSelected?: boolean
-
-  @Field({ nullable: true })
-  userId?: string
-
-  @Field(() => [File], { nullable: true })
-  files?: File[]
+  log?: string
 
   @Field({ nullable: true })
   updatedAt?: Date
@@ -32,9 +29,9 @@ export class Monster {
 }
 
 @ObjectType()
-export class MonstersList {
-  @Field(() => [Monster], { nullable: true })
-  items: Monster[]
+export class MonsterBattlesList {
+  @Field(() => [MonsterBattles], { nullable: true })
+  items: MonsterBattles[]
 
   @Field({ nullable: true })
   totalCount: number
