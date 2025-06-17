@@ -27,6 +27,18 @@ type AdminUsersList {
   totalCount: Float
 }
 
+enum BattleStatusEnum {
+  ACCEPTED
+  FINISHED
+  PENDING
+  REJECTED
+}
+
+input BattleStatusFilter {
+  eq: BattleStatusEnum
+  in: [BattleStatusEnum!]
+}
+
 type CommonResponse {
   error: ErrorResponse
   success: Boolean
@@ -86,10 +98,27 @@ type Monster {
   createdAt: DateTime
   files: [File!]
   id: String
+  isSelected: Boolean
   level: Float
   name: String
   updatedAt: DateTime
   userId: String
+}
+
+type MonsterBattles {
+  challengerMonsterId: String
+  createdAt: DateTime
+  id: String
+  log: String
+  opponentMonsterId: String
+  status: BattleStatusEnum
+  updatedAt: DateTime
+  winnerMonsterId: String
+}
+
+type MonsterBattlesList {
+  items: [MonsterBattles!]
+  totalCount: Float
 }
 
 type MonstersList {
@@ -104,9 +133,10 @@ type Mutation {
   AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: UserRoleEnum, surname: String): AdminUser!
   FileRemove(id: String!): CommonResponse!
   FileUpdate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, id: String!, name: String, url: String): File!
+  MonsterBattleUpdate(id: String!, status: BattleStatusEnum): MonsterBattles!
   MonsterCreate(fileId: String!, name: String, selectedPartsKey: SelectedPartsKey!, userId: String): Monster!
   MonsterRemove(id: String!, userId: String): CommonResponse!
-  MonsterUpdate(id: String!, name: String, userId: String): Monster!
+  MonsterUpdate(id: String!, isSelected: Boolean, name: String, userId: String): Monster!
   UserCreate(avatarFileId: String, email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): CommonResponse!
@@ -118,6 +148,7 @@ input NumberFilter {
   gte: Float
   in: [String!]
   lte: Float
+  neq: Float
 }
 
 type Query {
@@ -126,6 +157,8 @@ type Query {
   File(id: String!): File!
   Files(contentType: ContentTypeFilter, description: StringFilter, id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, version: NumberFilter): FilesList!
   Monster(id: String!): Monster!
+  MonsterBattle(id: String!): MonsterBattles!
+  MonsterBattles(challengerMonsterId: UuidFilter, id: UuidFilter, limit: Float!, offset: Float!, opponentMonsterId: UuidFilter, sortOrder: SortOrderEnum, status: BattleStatusFilter, winnerId: UuidFilter): MonsterBattlesList!
   Monsters(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, userId: UuidFilter): MonstersList!
   User(id: String!): User!
   Users(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): UsersList!
@@ -188,4 +221,5 @@ type UsersList {
 input UuidFilter {
   eq: String
   in: [String!]
+  neq: String
 }

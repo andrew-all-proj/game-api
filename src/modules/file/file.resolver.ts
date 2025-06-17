@@ -7,7 +7,7 @@ import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { GraphQLResolveInfo } from 'graphql'
-import config from '../../config'
+import { getFileUrl } from '../../functions/get-url'
 
 @Resolver(() => File)
 export class FileResolver {
@@ -50,8 +50,7 @@ export class FileResolver {
   }
 
   @ResolveField(() => String)
-  url(@Parent() file: File): string {
-    const baseUrl = config.fileUrlPrefix
-    return `${baseUrl}${file.url}`
+  url(@Parent() file: File): string | null {
+    return getFileUrl(file.url)
   }
 }

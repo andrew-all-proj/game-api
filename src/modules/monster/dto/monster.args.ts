@@ -80,6 +80,10 @@ export class MonsterUpdateArgs {
   @IsOptional()
   @Field({ nullable: true })
   name: string
+
+  @IsOptional()
+  @Field({ nullable: true })
+  isSelected: boolean
 }
 
 @ArgsType()

@@ -16,4 +16,9 @@ export default {
   port: Number(process.env.PORT) || 3000,
   fileUrlPrefix: process.env.FILE_URL_PREFIX,
   fileUploadDir: process.env.FILE_UPLOAD_DIR,
+  redisConnect: {
+    host: process.env.REDIS_HOST || 'localhost',
+    port: Number(process.env.REDIS_PORT) || 6379,
+    password: process.env.REDIS_PASSWORD || undefined,
+  },
 }

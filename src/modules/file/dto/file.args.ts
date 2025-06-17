@@ -2,7 +2,7 @@ import { Field, ArgsType } from '@nestjs/graphql'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
 import { IsOptional, IsUUID } from 'class-validator'
 import { NumberFilter, StringFilter, UuidFilter } from '../../../functions/filters/filters'
-import { ContentTypeFilter } from '../../../functions/filters/enum-filters'
+import { ContentTypeFilter } from './inputType'
 import * as gameDb from 'game-db'
 
 @ArgsType()

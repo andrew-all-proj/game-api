@@ -107,7 +107,7 @@ export class MonsterService {
       select: selectedFields,
     })
     if (!monster) {
-      throw new BadRequestException('User not found')
+      throw new BadRequestException('Monster not found')
     }
     return monster
   }
@@ -133,8 +133,21 @@ export class MonsterService {
     }
 
     const { id, ...updateData } = args
-    Object.assign(monster, updateData)
 
+    if (args.isSelected) {
+      const selectedMonsters = await gameDb.Entities.Monster.find({
+        where: { userId: userIdToUpdateMonster, isSelected: true },
+      })
+
+      for (const selectedMonster of selectedMonsters) {
+        if (selectedMonster.id !== monster.id) {
+          selectedMonster.isSelected = false
+          await gameDb.Entities.Monster.save(selectedMonster)
+        }
+      }
+    }
+
+    Object.assign(monster, updateData)
     await gameDb.Entities.Monster.save(monster)
 
     return monster

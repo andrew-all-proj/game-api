@@ -9,10 +9,15 @@ import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
 import { AdminUserModule } from './modules/admin-user/admin-user.module'
 import './modules/register-enum-type'
+import { BattleWsModule } from './modules/battle-ws/battle.module'
+import { MonsterBattlesModule } from './modules/monster-battles/monster-battles.module'
+import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
 
 @Module({
   imports: [
     AdminUserModule,
+    BattleWsModule,
+    MonsterBattlesModule,
     FileModule,
     MonsterModule,
     UserModule,
@@ -20,12 +25,13 @@ import './modules/register-enum-type'
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: 'schema.gql',
-      playground: true,
+      playground: false,
       sortSchema: true,
       context: ({ req }) => {
         const user = req.user
         return { user }
       },
+      plugins: [ApolloServerPluginLandingPageLocalDefault({ embed: true })],
     }),
   ],
   controllers: [AppController],

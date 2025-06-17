@@ -1,0 +1,129 @@
+import { Inject, Injectable } from '@nestjs/common'
+import { Redis } from 'ioredis'
+import { Server, Socket } from 'socket.io'
+import * as gameDb from 'game-db'
+import { getFileUrl } from 'src/functions/get-url'
+import { In } from 'typeorm'
+
+interface monsterRedis {
+  monsterId: string
+  userId: string
+  socketId: string
+  isFindOpponent: '0' | '1'
+  name: string
+  level: number
+  avatar: string | null
+}
+
+@Injectable()
+export class BattleSearchService {
+  private server: Server
+
+  constructor(@Inject('REDIS_CLIENT') private readonly redisClient: Redis) {}
+
+  setServer(server: Server) {
+    this.server = server
+  }
+
+  async registerMonsterForBattleSearch(
+    monsterId: string,
+    socketId: string,
+    userId: string,
+    isFindOpponent: boolean,
+  ): Promise<boolean> {
+    if (!isFindOpponent) {
+      await this.redisClient.hset(`monster:${monsterId}`, {
+        isFindOpponent: isFindOpponent ? '1' : '0',
+      })
+      return false
+    }
+    const monster = await gameDb.Entities.Monster.findOne({
+      where: { id: monsterId },
+      relations: ['user', 'files'],
+    })
+
+    if (!monster || monster.user.id !== userId) {
+      return false
+    }
+
+    const avatarUrl = monster.files.find((file) => file.contentType === gameDb.datatypes.ContentTypeEnum.AVATAR_MONSTER)
+
+    const monsterData: monsterRedis = {
+      socketId,
+      userId: monster.userId,
+      monsterId: monster.id,
+      isFindOpponent: isFindOpponent ? '1' : '0',
+      name: monster.name,
+      level: monster.level,
+      avatar: getFileUrl(avatarUrl?.url),
+    }
+
+    await this.redisClient.hset(`monster:${monsterId}`, {
+      ...monsterData,
+      level: monsterData.level.toString(),
+    })
+
+    return true
+  }
+
+  async getAvailableOpponentsPaged(
+    currentUserId: string,
+    cursor: string,
+    limit: number,
+  ): Promise<{ opponents: monsterRedis[]; nextCursor: string }> {
+    let nextCursor = cursor
+    const opponents: monsterRedis[] = []
+
+    do {
+      const [newCursor, keys] = await this.redisClient.scan(nextCursor, 'MATCH', 'monster:*', 'COUNT', limit)
+      nextCursor = newCursor
+
+      for (const key of keys) {
+        const data = await this.redisClient.hgetall(key)
+
+        if (data.isFindOpponent === '1' && data.userId !== currentUserId) {
+          opponents.push({
+            monsterId: key.split(':')[1],
+            userId: data.userId,
+            socketId: data.socketId,
+            isFindOpponent: data.isFindOpponent as '0' | '1',
+            name: data.name,
+            level: parseInt(data.level),
+            avatar: data.avatar,
+          })
+        }
+
+        if (opponents.length >= limit) {
+          return { opponents, nextCursor }
+        }
+      }
+    } while (nextCursor !== '0')
+
+    return { opponents, nextCursor: '0' }
+  }
+
+  async requestDuelChallenge(toId: string): Promise<monsterRedis | null> {
+    const opponent = await this.getMonsterById(toId)
+
+    if (!opponent?.isFindOpponent) {
+      return null
+    }
+
+    return opponent
+  }
+
+  async getMonsterById(id: string): Promise<monsterRedis | null> {
+    const data = await this.redisClient.hgetall(`monster:${id}`)
+    if (!data || Object.keys(data).length === 0) return null
+    const monster: monsterRedis = {
+      monsterId: id,
+      userId: data.userId,
+      socketId: data.socketId,
+      isFindOpponent: data.isFindOpponent as '0' | '1',
+      name: data.name,
+      level: parseInt(data.level),
+      avatar: data.avatar,
+    }
+    return monster
+  }
+}
