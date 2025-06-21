@@ -1,25 +1,18 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { Redis } from 'ioredis'
-import { Server, Socket } from 'socket.io'
+import { Server } from 'socket.io'
 import * as gameDb from 'game-db'
-import { getFileUrl } from 'src/functions/get-url'
-import { In } from 'typeorm'
+import { getFileUrl } from '../../functions/get-url'
+import { MonsterRedis } from '../../datatypes/common/MonsterRedis'
+import { getMonsterById } from '../../functions/redis/get-monster-by-id'
 
-interface monsterRedis {
-  monsterId: string
-  userId: string
-  socketId: string
-  isFindOpponent: '0' | '1'
-  name: string
-  level: number
-  avatar: string | null
-}
+const TTL = 3600
 
 @Injectable()
 export class BattleSearchService {
   private server: Server
 
-  constructor(@Inject('REDIS_CLIENT') private readonly redisClient: Redis) {}
+  constructor(@Inject('REDIS_CLIENT') readonly redisClient: Redis) {}
 
   setServer(server: Server) {
     this.server = server
@@ -48,7 +41,7 @@ export class BattleSearchService {
 
     const avatarUrl = monster.files.find((file) => file.contentType === gameDb.datatypes.ContentTypeEnum.AVATAR_MONSTER)
 
-    const monsterData: monsterRedis = {
+    const monsterData: MonsterRedis = {
       socketId,
       userId: monster.userId,
       monsterId: monster.id,
@@ -63,16 +56,21 @@ export class BattleSearchService {
       level: monsterData.level.toString(),
     })
 
+    await this.redisClient.expire(`monster:${monsterId}`, TTL) // TTL 1 hour
+
     return true
   }
 
   async getAvailableOpponentsPaged(
+    monsterId: string,
     currentUserId: string,
     cursor: string,
     limit: number,
-  ): Promise<{ opponents: monsterRedis[]; nextCursor: string }> {
+  ): Promise<{ opponents: MonsterRedis[]; nextCursor: string }> {
     let nextCursor = cursor
-    const opponents: monsterRedis[] = []
+    const opponents: MonsterRedis[] = []
+
+    await this.redisClient.expire(`monster:${monsterId}`, TTL)
 
     do {
       const [newCursor, keys] = await this.redisClient.scan(nextCursor, 'MATCH', 'monster:*', 'COUNT', limit)
@@ -102,28 +100,14 @@ export class BattleSearchService {
     return { opponents, nextCursor: '0' }
   }
 
-  async requestDuelChallenge(toId: string): Promise<monsterRedis | null> {
-    const opponent = await this.getMonsterById(toId)
+  async requestDuelChallenge(opponentMonsterId: string): Promise<MonsterRedis | null> {
+    const opponent = await getMonsterById(this.redisClient, opponentMonsterId)
 
     if (!opponent?.isFindOpponent) {
       return null
     }
 
+    await this.redisClient.expire(`monster:${opponent.monsterId}`, TTL)
     return opponent
-  }
-
-  async getMonsterById(id: string): Promise<monsterRedis | null> {
-    const data = await this.redisClient.hgetall(`monster:${id}`)
-    if (!data || Object.keys(data).length === 0) return null
-    const monster: monsterRedis = {
-      monsterId: id,
-      userId: data.userId,
-      socketId: data.socketId,
-      isFindOpponent: data.isFindOpponent as '0' | '1',
-      name: data.name,
-      level: parseInt(data.level),
-      avatar: data.avatar,
-    }
-    return monster
   }
 }

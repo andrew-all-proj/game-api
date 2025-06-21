@@ -8,22 +8,23 @@ import {
   OnGatewayInit,
 } from '@nestjs/websockets'
 import { Socket, Server } from 'socket.io'
-import { BattleSearchService } from './battleSearch.service'
+import { BattleSearchService } from './battle-search.service'
 import { JwtStrategy } from '../../functions/auth/jwt.strategy'
 import { JwtService } from '@nestjs/jwt'
-import { BattleService } from './battle.service'
+import { authenticateWebSocketClient } from '../../functions/ws/authenticate-client'
+import { getMonsterById } from '../../functions/redis/get-monster-by-id'
+import { createBattle } from '../../functions/create-battle'
 
 @WebSocketGateway({
   cors: {
     origin: '*',
   },
 })
-export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
+export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
   private server: Server
 
   constructor(
     private readonly battleSerchService: BattleSearchService,
-    private readonly battleService: BattleService,
     private readonly jwtService: JwtService,
     private readonly jwtStrategy: JwtStrategy,
   ) {}
@@ -33,18 +34,8 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect, 
   }
 
   async handleConnection(client: Socket) {
-    try {
-      const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '')
-      if (!token) {
-        client.disconnect()
-        return
-      }
-      const payload = await this.jwtStrategy.validate(this.jwtService.verify(token))
-      client.data.user = payload
-    } catch (err) {
-      console.warn(`JWT validation failed:`, err.message)
-      client.disconnect()
-    }
+    const isValid = await authenticateWebSocketClient(client, this.jwtService, this.jwtStrategy)
+    if (!isValid) client.disconnect()
   }
 
   handleDisconnect(client: Socket) {
@@ -84,6 +75,7 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect, 
     }
 
     const { opponents, nextCursor } = await this.battleSerchService.getAvailableOpponentsPaged(
+      data.monsterId,
       userId,
       data.cursor ?? '0',
       data.limit ?? 10,
@@ -111,18 +103,23 @@ export class BattleGateway implements OnGatewayConnection, OnGatewayDisconnect, 
     @ConnectedSocket() client: Socket,
   ) {
     if (!data.duelAccepted) {
-      const monsterOpponent = await this.battleSerchService.getMonsterById(data.fromMonsterId)
+      const monsterOpponent = await getMonsterById(this.battleSerchService.redisClient, data.fromMonsterId)
       if (!monsterOpponent) return
       this.server.to(monsterOpponent.socketId).emit('duelChallengeResponce', { result: false })
       return
     }
 
-    const battle = await this.battleService.createBattle(data.toMonsterId, data.fromMonsterId)
-    if (!battle) {
-      return null
-    }
+    const battle = await createBattle({
+      redisClient: this.battleSerchService.redisClient,
+      opponentMonsterId: data?.toMonsterId,
+      challengerMonsterId: data?.fromMonsterId,
+    })
 
-    this.server.to(battle.challengerMonster).emit('duelChallengeResponce', { result: true, battleId: battle.battleId })
-    this.server.to(battle.opponentMonster).emit('duelChallengeResponce', { result: true, battleId: battle.battleId })
+    if (battle.challengerSocketId) {
+      this.server.to(battle.challengerSocketId).emit('duelChallengeResponce', battle)
+    }
+    if (battle.opponentSocketId) {
+      this.server.to(battle.opponentSocketId).emit('duelChallengeResponce', battle)
+    }
   }
 }
