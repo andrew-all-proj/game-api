@@ -9,14 +9,16 @@ import { GraphQLModule } from '@nestjs/graphql'
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo'
 import { AdminUserModule } from './modules/admin-user/admin-user.module'
 import './modules/register-enum-type'
-import { BattleWsModule } from './modules/battle-ws/battle.module'
+import { BattleSearchModule } from './modules/battle-search/battle-search.module'
 import { MonsterBattlesModule } from './modules/monster-battles/monster-battles.module'
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
+import { BattleModule } from './modules/battle/battle.module'
 
 @Module({
   imports: [
     AdminUserModule,
-    BattleWsModule,
+    BattleModule,
+    BattleSearchModule,
     MonsterBattlesModule,
     FileModule,
     MonsterModule,

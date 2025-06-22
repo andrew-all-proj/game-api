@@ -72,7 +72,7 @@ export class UserService {
     try {
       return gameDb.Entities.User.create({ ...args }).save()
     } catch (err) {
-      console.log('Login error:', err)
+      console.log('Create error:', err)
       throw new BadRequestException('Create user error')
     }
   }
