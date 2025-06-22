@@ -2,7 +2,7 @@ import { Inject, Injectable } from '@nestjs/common'
 import { Redis } from 'ioredis'
 import { Server } from 'socket.io'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
-import { createBattle } from '../../functions/create-battle'
+import { createBattle, createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 
 export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedis {
@@ -42,14 +42,13 @@ export class BattleService {
       if (!battleDb) {
         return null
       }
-      const createBattleRedis = await createBattle({
+      await createBattleToRedis({
         redisClient: this.redisClient,
-        opponentMonsterId: battleDb.opponentMonsterId,
-        challengerMonsterId: battleDb.challengerMonsterId,
+        newBattle: battleDb,
+        challengerSocketId: battleDb.challengerMonsterId === monsterId ? socketId : '',
+        opponentSocketId: battleDb.opponentMonsterId === monsterId ? socketId : '',
       })
-      if (!createBattleRedis.result) {
-        return null
-      }
+
       battleRaw = await this.redisClient.hgetall(key)
     }
 

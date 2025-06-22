@@ -27,6 +27,14 @@ type AdminUsersList {
   totalCount: Float
 }
 
+type BattleLog {
+  action: String!
+  damage: Float!
+  from: String!
+  timestamp: String!
+  to: String!
+}
+
 enum BattleStatusEnum {
   ACCEPTED
   FINISHED
@@ -109,7 +117,7 @@ type MonsterBattles {
   challengerMonsterId: String
   createdAt: DateTime
   id: String
-  log: String
+  log: [BattleLog!]
   opponentMonsterId: String
   status: BattleStatusEnum
   updatedAt: DateTime

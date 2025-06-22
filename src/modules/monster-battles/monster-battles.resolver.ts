@@ -1,6 +1,6 @@
-import { Resolver, Query, Mutation, Args, Context, Info } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Context, Info, ResolveField, Parent } from '@nestjs/graphql'
 import { MonsterBattlesService } from './monster-battles.service'
-import { MonsterBattles, MonsterBattlesList } from './entities/monster-battles'
+import { BattleLog, MonsterBattles, MonsterBattlesList } from './entities/monster-battles'
 import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'
@@ -57,5 +57,14 @@ export class MonsterBattlesResolver {
     @Info() info: GraphQLResolveInfo,
   ): Promise<MonsterBattles> {
     return this.monsterBattlesService.update(args, ctx, info)
+  }
+
+  @ResolveField(() => [BattleLog], { nullable: true })
+  log(@Parent() parent: any): BattleLog[] {
+    try {
+      return parent.log ? JSON.parse(parent.log) : []
+    } catch (e) {
+      return []
+    }
   }
 }

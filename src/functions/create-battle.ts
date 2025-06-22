@@ -17,6 +17,50 @@ interface CreateBattle {
   challengerSocketId: string | null
 }
 
+interface CreateBattleToRedisArgs {
+  redisClient: Redis
+  newBattle: gameDb.Entities.MonsterBattles
+  opponentSocketId: string | null
+  challengerSocketId: string | null
+}
+
+export async function createBattleToRedis({
+  redisClient,
+  newBattle,
+  opponentSocketId,
+  challengerSocketId,
+}: CreateBattleToRedisArgs): Promise<boolean> {
+  const { id: battleId, opponentMonsterId, challengerMonsterId } = newBattle
+
+  const battleData: BattleRedis = {
+    battleId,
+    opponentMonsterId,
+    challengerMonsterId,
+    challengerMonsterHp: 100,
+    opponentMonsterHp: 100,
+    currentTurnMonsterId: challengerMonsterId,
+    turnStartTime: Date.now(),
+    turnTimeLimit: 30000,
+    lastActionLog: '',
+    challengerSocketId: challengerSocketId ?? '',
+    opponentSocketId: opponentSocketId ?? '',
+    challengerReady: '0',
+    opponentReady: '0',
+  }
+
+  await redisClient.hset(`battle:${battleId}`, {
+    ...battleData,
+    challengerMonsterHp: battleData.challengerMonsterHp.toString(),
+    opponentMonsterHp: battleData.opponentMonsterHp.toString(),
+    turnStartTime: battleData.turnStartTime.toString(),
+    turnTimeLimit: battleData.turnTimeLimit.toString(),
+  })
+
+  await redisClient.expire(`battle:${battleId}`, 3600)
+
+  return true
+}
+
 export async function createBattle({
   redisClient,
   opponentMonsterId,
@@ -64,31 +108,12 @@ export async function createBattle({
 
   await newBattle.save()
 
-  const battleData: BattleRedis = {
-    battleId: newBattle.id,
-    opponentMonsterId,
-    challengerMonsterId,
-    challengerMonsterHp: 100,
-    opponentMonsterHp: 100,
-    currentTurnMonsterId: challengerMonsterId,
-    turnStartTime: Date.now(),
-    turnTimeLimit: 30000,
-    lastActionLog: '',
-    challengerSocketId: challenger?.socketId,
+  await createBattleToRedis({
+    redisClient,
+    newBattle,
     opponentSocketId: opponent?.socketId,
-    challengerReady: '0',
-    opponentReady: '0',
-  }
-
-  await redisClient.hset(`battle:${newBattle.id}`, {
-    ...battleData,
-    challengerMonsterHp: battleData.challengerMonsterHp.toString(),
-    opponentMonsterHp: battleData.opponentMonsterHp.toString(),
-    turnStartTime: battleData.turnStartTime.toString(),
-    turnTimeLimit: battleData.turnTimeLimit.toString(),
+    challengerSocketId: challenger?.socketId,
   })
-
-  await redisClient.expire(`battle:${newBattle.id}`, 3600)
 
   return {
     result: true,
