@@ -174,7 +174,7 @@ export class BattleService {
 
       if (battle.chatId) {
         fetchRequest({
-          url: `${config.botServiceUrl}/result-battle/${battleId}`,
+          url: `${config.botServiceUrl}/ /${battleId}`,
           method: 'GET',
           headers: { Authorization: `Bearer ${config.botServiceToken}` },
         })
