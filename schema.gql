@@ -6,13 +6,13 @@ type AdminUser {
   createdAt: DateTime
   email: String
   id: String
-  idTelegram: String
   isEmailVerified: Boolean
   isPhoneVerified: Boolean
   name: String
   phone: String
   role: UserRoleEnum
   surname: String
+  telegramId: String
   updatedAt: DateTime
 }
 
@@ -135,20 +135,20 @@ type MonstersList {
 }
 
 type Mutation {
-  AdminUserCreate(email: String!, idTelegram: String, name: String!, password: String!, role: UserRoleEnum, surname: String): AdminUser!
+  AdminUserCreate(email: String!, name: String!, password: String!, role: UserRoleEnum, surname: String, telegramId: String): AdminUser!
   AdminUserLogin(email: String!, password: String!): AdminUserLogin!
   AdminUserRemove(id: String!): CommonResponse!
-  AdminUserUpdate(email: String, id: String!, idTelegram: String, name: String, password: String, role: UserRoleEnum, surname: String): AdminUser!
+  AdminUserUpdate(email: String, id: String!, name: String, password: String, role: UserRoleEnum, surname: String, telegramId: String): AdminUser!
   FileRemove(id: String!): CommonResponse!
   FileUpdate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, id: String!, name: String, url: String): File!
   MonsterBattleUpdate(id: String!, status: BattleStatusEnum): MonsterBattles!
   MonsterCreate(fileId: String!, name: String, selectedPartsKey: SelectedPartsKey!, userId: String): Monster!
   MonsterRemove(id: String!, userId: String): CommonResponse!
   MonsterUpdate(id: String!, isSelected: Boolean, name: String, userId: String): Monster!
-  UserCreate(avatarFileId: String, email: String, idTelegram: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
+  UserCreate(avatarFileId: String, email: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String): User!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): CommonResponse!
-  UserUpdate(avatarFileId: String, email: String, id: String!, idTelegram: String, isRegistered: Boolean, name: String, nameProfessor: String, phone: String): User!
+  UserUpdate(avatarFileId: String, email: String, id: String!, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String): User!
 }
 
 input NumberFilter {
@@ -196,13 +196,13 @@ type User {
   createdAt: DateTime
   email: String
   id: String
-  idTelegram: String
   isEmailVerified: Boolean
   isPhoneVerified: Boolean
   isRegistered: Boolean
   name: String
   nameProfessor: String
   phone: String
+  telegramId: String
   updatedAt: DateTime
 }
 

@@ -13,7 +13,7 @@ export class User {
   nameProfessor: string
 
   @Field({ nullable: true })
-  idTelegram: string
+  telegramId: string
 
   @Field({ nullable: true })
   email: string
