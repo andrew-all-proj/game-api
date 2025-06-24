@@ -171,10 +171,12 @@ export class BattleService {
         winnerMonsterId: winner,
         log: logs,
       })
-
+      console.log('battleId!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', battleId)
       if (battle.chatId) {
+        console.log('battleId!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', battleId)
+        console.log(`${config.botServiceUrl}/result-battle/${battleId}`)
         fetchRequest({
-          url: `${config.botServiceUrl}/ /${battleId}`,
+          url: `${config.botServiceUrl}/result-battle/${battleId}`,
           method: 'GET',
           headers: { Authorization: `Bearer ${config.botServiceToken}` },
         })
