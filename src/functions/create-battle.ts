@@ -22,6 +22,7 @@ interface CreateBattleToRedisArgs {
   newBattle: gameDb.Entities.MonsterBattles
   opponentSocketId: string | null
   challengerSocketId: string | null
+  chatId?: string
 }
 
 export async function createBattleToRedis({
@@ -29,6 +30,7 @@ export async function createBattleToRedis({
   newBattle,
   opponentSocketId,
   challengerSocketId,
+  chatId,
 }: CreateBattleToRedisArgs): Promise<boolean> {
   const { id: battleId, opponentMonsterId, challengerMonsterId } = newBattle
 
@@ -113,6 +115,7 @@ export async function createBattle({
     newBattle,
     opponentSocketId: opponent?.socketId,
     challengerSocketId: challenger?.socketId,
+    chatId: newBattle.chatId,
   })
 
   return {

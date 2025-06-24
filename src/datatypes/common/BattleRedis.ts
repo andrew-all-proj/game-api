@@ -14,4 +14,5 @@ export interface BattleRedis {
   challengerReady: '0' | '1'
   opponentReady: '0' | '1'
   winnerMonsterId?: string
+  chatId?: string | null
 }
