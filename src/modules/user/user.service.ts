@@ -40,7 +40,7 @@ export class UserService {
       }
 
       user = await gameDb.Entities.User.findOne({
-        where: { idTelegram: tlgId.toString() },
+        where: { telegramId: tlgId.toString() },
         relations: ['avatar'],
       })
     } catch (err) {

@@ -13,7 +13,7 @@ export class AdminUser {
   surname?: string
 
   @Field({ nullable: true })
-  idTelegram?: string
+  telegramId?: string
 
   @Field(() => gameDb.datatypes.UserRoleEnum, { nullable: true })
   role?: gameDb.datatypes.UserRoleEnum

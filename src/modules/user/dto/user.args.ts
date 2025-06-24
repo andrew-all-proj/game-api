@@ -21,7 +21,7 @@ export class UserCreateArgs {
   nameProfessor: string
 
   @Field({ nullable: true })
-  idTelegram: string
+  telegramId: string
 
   @IsEmail()
   @IsOptional()
@@ -77,7 +77,7 @@ export class UserUpdateArgs {
   nameProfessor: string
 
   @Field({ nullable: true })
-  idTelegram: string
+  telegramId: string
 
   @IsEmail()
   @IsOptional()
