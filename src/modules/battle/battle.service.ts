@@ -45,6 +45,9 @@ export class BattleService {
       if (!battleDb) {
         return null
       }
+
+      console.log('battleDb!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', battleDb)
+
       await createBattleToRedis({
         redisClient: this.redisClient,
         newBattle: battleDb,
@@ -171,7 +174,7 @@ export class BattleService {
         winnerMonsterId: winner,
         log: logs,
       })
-      console.log('battleId!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', battleId)
+      console.log('battleId!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', battle.chatId)
       if (battle.chatId) {
         console.log('battleId!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', battleId)
         console.log(`${config.botServiceUrl}/result-battle/${battleId}`)

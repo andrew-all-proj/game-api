@@ -48,6 +48,7 @@ export async function createBattleToRedis({
     opponentSocketId: opponentSocketId ?? '',
     challengerReady: '0',
     opponentReady: '0',
+    chatId: chatId,
   }
 
   await redisClient.hset(`battle:${battleId}`, {
