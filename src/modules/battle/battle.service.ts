@@ -2,8 +2,10 @@ import { Inject, Injectable } from '@nestjs/common'
 import { Redis } from 'ioredis'
 import { Server } from 'socket.io'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
-import { createBattle, createBattleToRedis } from '../../functions/create-battle'
+import { createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
+import { fetchRequest } from '../../functions/fetchRequest'
+import config from 'src/config'
 
 export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedis {
   return {
@@ -20,6 +22,7 @@ export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedi
     opponentSocketId: battleRaw.opponentSocketId || '',
     challengerReady: battleRaw.challengerReady === '1' ? '1' : '0',
     opponentReady: battleRaw.opponentReady === '1' ? '1' : '0',
+    chatId: battleRaw.chatId,
   }
 }
 
@@ -38,15 +41,19 @@ export class BattleService {
     let battleRaw = await this.redisClient.hgetall(key)
     if (!battleRaw || Object.keys(battleRaw).length === 0) {
       //CREATE BATTLE if has in db (if battle created in bot)
-      const battleDb = await gameDb.Entities.MonsterBattles.findOne({ where: { id: battleId } })
+      const battleDb = await gameDb.Entities.MonsterBattles.findOne({
+        where: { id: battleId, status: gameDb.datatypes.BattleStatusEnum.ACCEPTED },
+      })
       if (!battleDb) {
         return null
       }
+
       await createBattleToRedis({
         redisClient: this.redisClient,
         newBattle: battleDb,
         challengerSocketId: battleDb.challengerMonsterId === monsterId ? socketId : '',
         opponentSocketId: battleDb.opponentMonsterId === monsterId ? socketId : '',
+        chatId: battleDb.chatId,
       })
 
       battleRaw = await this.redisClient.hgetall(key)
@@ -147,14 +154,15 @@ export class BattleService {
 
     battle.lastActionLog = logEntry.action
 
-    const redisUpdatePayload: Record<string, string> = {
-      challengerMonsterHp: battle.challengerMonsterHp.toString(),
-      opponentMonsterHp: battle.opponentMonsterHp.toString(),
+    const redisUpdatePayload = {
+      challengerMonsterHp: battle.challengerMonsterHp,
+      opponentMonsterHp: battle.opponentMonsterHp,
       currentTurnMonsterId: battle.currentTurnMonsterId,
-      turnStartTime: battle.turnStartTime.toString(),
-      turnTimeLimit: battle.turnTimeLimit.toString(),
+      turnStartTime: battle.turnStartTime,
+      turnTimeLimit: battle.turnTimeLimit,
       lastActionLog: battle.lastActionLog,
       logs: JSON.stringify(logs),
+      ...(battle.winnerMonsterId ? { winnerMonsterId: battle.winnerMonsterId } : {}),
     }
 
     if (winner) {
@@ -166,6 +174,13 @@ export class BattleService {
         winnerMonsterId: winner,
         log: logs,
       })
+      if (battle.chatId) {
+        fetchRequest({
+          url: `http://${config.botServiceUrl}/result-battle/${battleId}`,
+          method: 'GET',
+          headers: { Authorization: `Bearer ${config.botServiceToken}` },
+        })
+      }
     }
 
     await this.redisClient.hset(key, redisUpdatePayload)
