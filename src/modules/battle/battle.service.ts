@@ -46,8 +46,6 @@ export class BattleService {
         return null
       }
 
-      console.log('battleDb!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', battleDb)
-
       await createBattleToRedis({
         redisClient: this.redisClient,
         newBattle: battleDb,
@@ -174,12 +172,9 @@ export class BattleService {
         winnerMonsterId: winner,
         log: logs,
       })
-      console.log('battleId!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', battle.chatId)
       if (battle.chatId) {
-        console.log('battleId!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!', battleId)
-        console.log(`${config.botServiceUrl}/result-battle/${battleId}`)
         fetchRequest({
-          url: `${config.botServiceUrl}/result-battle/${battleId}`,
+          url: `http://${config.botServiceUrl}/result-battle/${battleId}`,
           method: 'GET',
           headers: { Authorization: `Bearer ${config.botServiceToken}` },
         })
