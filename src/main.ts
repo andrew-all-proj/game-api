@@ -14,6 +14,7 @@ async function bootstrap() {
     }
 
     await gameDb.AppDataSource.initialize()
+    console.log(config.botServiceUrl)
     console.log('Database connected')
   } catch (error) {
     console.error('Database connection failed', error)
