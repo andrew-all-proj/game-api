@@ -41,7 +41,9 @@ export class BattleService {
     let battleRaw = await this.redisClient.hgetall(key)
     if (!battleRaw || Object.keys(battleRaw).length === 0) {
       //CREATE BATTLE if has in db (if battle created in bot)
-      const battleDb = await gameDb.Entities.MonsterBattles.findOne({ where: { id: battleId } })
+      const battleDb = await gameDb.Entities.MonsterBattles.findOne({
+        where: { id: battleId, status: gameDb.datatypes.BattleStatusEnum.ACCEPTED },
+      })
       if (!battleDb) {
         return null
       }
