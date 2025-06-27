@@ -1,4 +1,5 @@
 import axios, { AxiosRequestConfig, Method } from 'axios'
+import { logger } from './logger'
 
 interface FetchRequest {
   url: string
@@ -28,7 +29,10 @@ export async function fetchRequest<T = any>({
     return { data: response.data }
   } catch (error: any) {
     const errorData = error.response?.data || error.message
-    console.error(`❌ Request failed [${method}] ${url}:`, errorData)
+    logger.error(`❌ Request failed [${method}] ${url}`, {
+      error: errorData,
+      status: error.response?.status,
+    })
     return { error: errorData }
   }
 }

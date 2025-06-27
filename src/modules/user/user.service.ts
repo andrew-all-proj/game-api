@@ -1,4 +1,4 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Inject, Injectable } from '@nestjs/common'
 import { UserArgs, UserCreateArgs, UserLoginArgs, UserRemoveArgs, UsersListArgs, UserUpdateArgs } from './dto/user.args'
 import { User, UserLogin, UsersList } from './entities/user'
 import * as gameDb from 'game-db'
@@ -11,10 +11,16 @@ import { buildQueryFilters } from '../../functions/filters/build-query-filters'
 import { SortOrderEnum } from '../../datatypes/common/SortOrderEnum'
 import { GraphQLResolveInfo } from 'graphql'
 import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
+import { Logger } from 'winston'
+import { WINSTON_MODULE_NEST_PROVIDER } from 'nest-winston'
 
 @Injectable()
 export class UserService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    @Inject(WINSTON_MODULE_NEST_PROVIDER)
+    private readonly logger: Logger,
+  ) {}
 
   async login(args: UserLoginArgs): Promise<UserLogin> {
     let user: gameDb.Entities.User | null
@@ -44,7 +50,7 @@ export class UserService {
         relations: ['avatar'],
       })
     } catch (err) {
-      console.log('Login error:', err)
+      this.logger.error(`Login error:`, err)
       throw new BadRequestException('User initData error')
     }
 
@@ -70,9 +76,11 @@ export class UserService {
 
   async create(args: UserCreateArgs): Promise<User> {
     try {
-      return gameDb.Entities.User.create({ ...args }).save()
+      const user = await gameDb.Entities.User.create({ ...args }).save()
+      this.logger.info(`Create new user: ${user.id}`)
+      return user
     } catch (err) {
-      console.log('Create error:', err)
+      this.logger.error(`Create user error`, err)
       throw new BadRequestException('Create user error')
     }
   }
