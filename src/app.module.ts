@@ -13,6 +13,8 @@ import { BattleSearchModule } from './modules/battle-search/battle-search.module
 import { MonsterBattlesModule } from './modules/monster-battles/monster-battles.module'
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default'
 import { BattleModule } from './modules/battle/battle.module'
+import { WinstonModule } from 'nest-winston'
+import { createWinstonLogger } from './config/winston'
 
 @Module({
   imports: [
@@ -24,6 +26,7 @@ import { BattleModule } from './modules/battle/battle.module'
     MonsterModule,
     UserModule,
     UploadModule,
+    WinstonModule.forRoot(createWinstonLogger()),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
       autoSchemaFile: 'schema.gql',
@@ -36,6 +39,7 @@ import { BattleModule } from './modules/battle/battle.module'
       plugins: [ApolloServerPluginLandingPageLocalDefault({ embed: true })],
     }),
   ],
+  exports: [WinstonModule],
   controllers: [AppController],
   providers: [AppService],
 })
