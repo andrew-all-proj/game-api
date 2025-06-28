@@ -6,7 +6,7 @@ import { getFileUrl } from '../../functions/get-url'
 import { MonsterRedis } from '../../datatypes/common/MonsterRedis'
 import { getMonsterById } from '../../functions/redis/get-monster-by-id'
 
-const TTL = 3600
+const TTL = 1800
 
 @Injectable()
 export class BattleSearchService {

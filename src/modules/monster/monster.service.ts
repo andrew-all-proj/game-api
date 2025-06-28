@@ -16,6 +16,7 @@ import {
 import { Monster, MonstersList } from './entities/monster'
 import { createSpriteSheetMonster } from '../../functions/createSpriteSheet'
 import { v4 as uuidv4 } from 'uuid'
+import { logger } from '../../functions/logger'
 
 @Injectable()
 export class MonsterService {
@@ -75,7 +76,7 @@ export class MonsterService {
 
       return newMonster
     } catch (err) {
-      console.log('Create monster error:', err)
+      logger.error('Create monster error', err)
       throw new BadRequestException('Create monster error')
     }
   }

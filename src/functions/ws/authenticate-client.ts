@@ -1,6 +1,7 @@
 import { Socket } from 'socket.io'
 import { JwtService } from '@nestjs/jwt'
 import { JwtStrategy } from '../auth/jwt.strategy'
+import { logger } from '../logger'
 
 export async function authenticateWebSocketClient(
   client: Socket,
@@ -15,7 +16,7 @@ export async function authenticateWebSocketClient(
     client.data.user = payload
     return true
   } catch (err) {
-    console.warn(`WebSocket JWT validation failed:`, err.message)
+    logger.warn(`WebSocket JWT validation failed:`, err.message)
     return false
   }
 }

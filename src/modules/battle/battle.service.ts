@@ -5,7 +5,7 @@ import { BattleRedis } from '../../datatypes/common/BattleRedis'
 import { createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 import { fetchRequest } from '../../functions/fetchRequest'
-import config from 'src/config'
+import config from '../../config'
 
 export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedis {
   return {

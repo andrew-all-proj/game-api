@@ -1,18 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import * as gameDb from 'game-db'
 import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
-import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { buildQueryFilters } from '../../functions/filters/build-query-filters'
 import { SortOrderEnum } from '../../datatypes/common/SortOrderEnum'
 import { GraphQLResolveInfo } from 'graphql'
 import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
 import { MonsterBattles, MonsterBattlesList } from './entities/monster-battles'
-import {
-  MonsterBattlesArgs,
-  MonsterBattlesListArgs,
-  MonsterBattlesRemoveArgs,
-  MonsterBattlesUpdateArgs,
-} from './dto/monster-battles.args'
+import { MonsterBattlesArgs, MonsterBattlesListArgs, MonsterBattlesUpdateArgs } from './dto/monster-battles.args'
 
 @Injectable()
 export class MonsterBattlesService {

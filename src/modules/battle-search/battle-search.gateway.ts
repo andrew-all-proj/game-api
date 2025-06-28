@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt'
 import { authenticateWebSocketClient } from '../../functions/ws/authenticate-client'
 import { getMonsterById } from '../../functions/redis/get-monster-by-id'
 import { createBattle } from '../../functions/create-battle'
+import { logger } from '../../functions/logger'
 
 @WebSocketGateway({
   cors: {
@@ -39,7 +40,7 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
   }
 
   handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`)
+    logger.info(`Client disconnected: ${client.id}`)
   }
 
   @SubscribeMessage('registerMonsterForBattle')
