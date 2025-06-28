@@ -60,6 +60,8 @@ export class UserService {
 
     const token = this.jwtService.sign(payload)
 
+    logger.info(`User login id: ${user.id}`)
+
     return {
       isRegistered: user.isRegistered,
       token: token,
