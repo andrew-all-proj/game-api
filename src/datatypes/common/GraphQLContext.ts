@@ -1,7 +1,9 @@
+import * as gameDb from 'game-db'
+
 export interface AuthenticatedRequest extends Request {
   user: {
     id: string
-    role: string
+    role: gameDb.datatypes.UserRoleEnum
     email?: string
   }
 }

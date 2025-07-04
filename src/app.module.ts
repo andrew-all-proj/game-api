@@ -16,6 +16,13 @@ import { BattleModule } from './modules/battle/battle.module'
 import { WinstonModule } from 'nest-winston'
 import { createWinstonLogger } from './config/winston'
 
+interface AuthenticatedRequest extends Request {
+  user?: {
+    id: string
+    role: string
+  }
+}
+
 @Module({
   imports: [
     AdminUserModule,
@@ -32,7 +39,7 @@ import { createWinstonLogger } from './config/winston'
       autoSchemaFile: 'schema.gql',
       playground: false,
       sortSchema: true,
-      context: ({ req }) => {
+      context: ({ req }: { req: AuthenticatedRequest }) => {
         const user = req.user
         return { user }
       },

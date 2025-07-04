@@ -1,3 +1,5 @@
+import { BattleLog } from '../../modules/monster-battles/entities/monster-battles'
+
 export interface BattleRedis {
   battleId: string
   opponentMonsterId: string
@@ -8,7 +10,7 @@ export interface BattleRedis {
   turnStartTime: number
   turnTimeLimit: number
   lastActionLog?: string
-  logs?: string
+  logs?: BattleLog[]
   challengerSocketId: string
   opponentSocketId: string
   challengerReady: '0' | '1'

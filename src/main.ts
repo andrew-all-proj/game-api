@@ -34,4 +34,6 @@ async function bootstrap() {
   await app.listen(config.port, '0.0.0.0')
   logger.log('info', `App running on port ${config.port}`)
 }
-bootstrap()
+bootstrap().catch((error) => {
+  console.error(error)
+})

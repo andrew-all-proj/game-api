@@ -5,14 +5,9 @@ import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'
 import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
-import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { GraphQLResolveInfo } from 'graphql'
-import {
-  MonsterBattlesArgs,
-  MonsterBattlesListArgs,
-  MonsterBattlesRemoveArgs,
-  MonsterBattlesUpdateArgs,
-} from './dto/monster-battles.args'
+import { MonsterBattlesArgs, MonsterBattlesListArgs, MonsterBattlesUpdateArgs } from './dto/monster-battles.args'
+import { logger } from '../../functions/logger'
 
 @Resolver(() => MonsterBattles)
 export class MonsterBattlesResolver {
@@ -25,12 +20,8 @@ export class MonsterBattlesResolver {
     gameDb.datatypes.UserRoleEnum.ADMIN,
   )
   @Query(() => MonsterBattlesList)
-  MonsterBattles(
-    @Args() args: MonsterBattlesListArgs,
-    @Info() info: GraphQLResolveInfo,
-    @Context() ctx: GraphQLContext,
-  ): Promise<MonsterBattlesList> {
-    return this.monsterBattlesService.findAll(args, info, ctx)
+  MonsterBattles(@Args() args: MonsterBattlesListArgs, @Info() info: GraphQLResolveInfo): Promise<MonsterBattlesList> {
+    return this.monsterBattlesService.findAll(args, info)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -56,14 +47,15 @@ export class MonsterBattlesResolver {
     @Context() ctx: GraphQLContext,
     @Info() info: GraphQLResolveInfo,
   ): Promise<MonsterBattles> {
-    return this.monsterBattlesService.update(args, ctx, info)
+    return this.monsterBattlesService.update(args, info)
   }
 
   @ResolveField(() => [BattleLog], { nullable: true })
-  log(@Parent() parent: any): BattleLog[] {
+  log(@Parent() parent: { log?: string }): BattleLog[] {
     try {
-      return parent.log ? JSON.parse(parent.log) : []
+      return parent.log ? (JSON.parse(parent.log) as BattleLog[]) : []
     } catch (e) {
+      logger.error('Resolver field log', e)
       return []
     }
   }

@@ -12,11 +12,7 @@ import { MonsterBattlesArgs, MonsterBattlesListArgs, MonsterBattlesUpdateArgs } 
 export class MonsterBattlesService {
   constructor() {}
 
-  async findAll(
-    args: MonsterBattlesListArgs,
-    info: GraphQLResolveInfo,
-    ctx: GraphQLContext,
-  ): Promise<MonsterBattlesList> {
+  async findAll(args: MonsterBattlesListArgs, info: GraphQLResolveInfo): Promise<MonsterBattlesList> {
     const { offset, limit, sortOrder = SortOrderEnum.DESC } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.MonsterBattles)
@@ -48,7 +44,7 @@ export class MonsterBattlesService {
     return monster
   }
 
-  async update(args: MonsterBattlesUpdateArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<MonsterBattles> {
+  async update(args: MonsterBattlesUpdateArgs, info: GraphQLResolveInfo): Promise<MonsterBattles> {
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.Monster)
     const monsterBattles = await gameDb.Entities.MonsterBattles.findOne({
       where: { id: args.id },
@@ -60,7 +56,7 @@ export class MonsterBattlesService {
       throw new BadRequestException('Monster Battles not found')
     }
 
-    const { id, ...updateData } = args
+    const { id: _ignored, ...updateData } = args
 
     Object.assign(monsterBattles, updateData)
     await gameDb.Entities.MonsterBattles.save(monsterBattles)

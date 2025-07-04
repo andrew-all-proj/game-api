@@ -82,10 +82,10 @@ export class AdminUserService {
     //TODO update role only if user is super admin
     //TODO when change email, phone. Confirm change data
 
-    const { id, password, role, ...updateData } = query
+    const { id: _ignored, password, role: _, ...updateData } = query
 
     if (password) {
-      ;(updateData as any).password = bcrypt.hashSync(password, 10)
+      user.password = bcrypt.hashSync(password, 10)
     }
 
     Object.assign(user, updateData)

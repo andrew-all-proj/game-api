@@ -1,22 +1,31 @@
-import { Socket } from 'socket.io'
 import { JwtService } from '@nestjs/jwt'
 import { JwtStrategy } from '../auth/jwt.strategy'
 import { logger } from '../logger'
+import { AuthenticatedSocket } from '../../datatypes/common/AuthenticatedSocket'
+import { JwtPayload } from '../auth/jwt.strategy'
 
-export async function authenticateWebSocketClient(
-  client: Socket,
+export function authenticateWebSocketClient(
+  client: AuthenticatedSocket,
   jwtService: JwtService,
   jwtStrategy: JwtStrategy,
-): Promise<boolean> {
+): boolean {
   try {
-    const token = client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', '')
+    const token = String(
+      client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', ''),
+    )
     if (!token) return false
 
-    const payload = await jwtStrategy.validate(jwtService.verify(token))
+    const decoded = jwtService.verify<JwtPayload>(token)
+    const payload = jwtStrategy.validate(decoded)
+
     client.data.user = payload
     return true
   } catch (err) {
-    logger.warn(`WebSocket JWT validation failed:`, err.message)
+    if (err instanceof Error) {
+      logger.warn(`WebSocket JWT validation failed:`, err.message)
+    } else {
+      logger.warn(`WebSocket JWT validation failed:`, String(err))
+    }
     return false
   }
 }

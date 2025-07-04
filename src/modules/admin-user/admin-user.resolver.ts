@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Int, Info } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Info } from '@nestjs/graphql'
 import { AdminUserService } from './admin-user.service'
 import {
   AdminRemoveArgs,

@@ -7,7 +7,6 @@ import { SortOrderEnum } from '../../datatypes/common/SortOrderEnum'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
 import { GraphQLResolveInfo } from 'graphql'
-import * as bcrypt from 'bcrypt'
 
 @Injectable()
 export class FileService {
@@ -51,7 +50,7 @@ export class FileService {
       throw new BadRequestException('File not found')
     }
 
-    const { id, ...updateData } = args
+    const { id: _ignored, ...updateData } = args
 
     await gameDb.Entities.File.save({ ...updateData })
 

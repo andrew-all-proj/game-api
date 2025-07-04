@@ -18,6 +18,10 @@ interface UploadFileResponse {
   size: number
 }
 
+interface UploadRequest extends Request {
+  generatedFileId?: string
+}
+
 @Controller('upload')
 export class UploadController {
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -30,16 +34,23 @@ export class UploadController {
   @UseInterceptors(
     FileInterceptor('file', {
       storage: diskStorage({
-        destination: (req, file, cb) => {
+        destination: (
+          req: Request,
+          file: Express.Multer.File,
+          cb: (error: Error | null, destination: string) => void,
+        ) => {
           if (!fs.existsSync(config.fileUploadDir)) {
             fs.mkdirSync(config.fileUploadDir, { recursive: true })
           }
-
           cb(null, config.fileUploadDir)
         },
-        filename: (req: Request, file, cb) => {
+        filename: (
+          req: UploadRequest,
+          file: Express.Multer.File,
+          cb: (error: Error | null, filename: string) => void,
+        ) => {
           const uniqueId = uuidv4()
-          req['generatedFileId'] = uniqueId
+          req.generatedFileId = uniqueId
           cb(null, `${uniqueId}${extname(file.originalname)}`)
         },
       }),
@@ -47,10 +58,10 @@ export class UploadController {
   )
   async uploadFile(
     @UploadedFile() file: Express.Multer.File,
-    @Req() req: Request,
+    @Req() req: UploadRequest,
     @Body() body: UploadFileDto,
   ): Promise<UploadFileResponse> {
-    const id = req['generatedFileId']
+    const id = req.generatedFileId
 
     const newFile = gameDb.Entities.File.create({
       id,
