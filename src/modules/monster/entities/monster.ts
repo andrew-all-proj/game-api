@@ -10,9 +10,6 @@ export class Monster {
   name?: string
 
   @Field({ nullable: true })
-  bodyMass?: number
-
-  @Field({ nullable: true })
   level?: number
 
   @Field({ nullable: true })

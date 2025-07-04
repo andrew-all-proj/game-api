@@ -15,7 +15,7 @@ export default {
   local: process.env.LOCAL,
   port: Number(process.env.PORT) || 3000,
   fileUrlPrefix: process.env.FILE_URL_PREFIX,
-  fileUploadDir: process.env.FILE_UPLOAD_DIR,
+  fileUploadDir: process.env.FILE_UPLOAD_DIR || '.',
   botServiceUrl: process.env.BOT_SERVICE_URL,
   botServiceToken: process.env.BOT_SERVICE_TOKEN,
   redisConnect: {
@@ -23,4 +23,4 @@ export default {
     port: Number(process.env.REDIS_PORT) || 6379,
     password: process.env.REDIS_PASSWORD || undefined,
   },
-}
+} as const

@@ -1,19 +1,19 @@
-import { Test, TestingModule } from '@nestjs/testing';
-import { AdminUserResolver } from './admin-user.resolver';
-import { AdminUserService } from './admin-user.service';
+import { Test, TestingModule } from '@nestjs/testing'
+import { AdminUserResolver } from './admin-user.resolver'
+import { AdminUserService } from './admin-user.service'
 
 describe('AdminUserResolver', () => {
-  let resolver: AdminUserResolver;
+  let resolver: AdminUserResolver
 
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [AdminUserResolver, AdminUserService],
-    }).compile();
+    }).compile()
 
-    resolver = module.get<AdminUserResolver>(AdminUserResolver);
-  });
+    resolver = module.get<AdminUserResolver>(AdminUserResolver)
+  })
 
   it('should be defined', () => {
-    expect(resolver).toBeDefined();
-  });
-});
+    expect(resolver).toBeDefined()
+  })
+})

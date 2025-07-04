@@ -33,12 +33,8 @@ export class MonsterResolver {
     gameDb.datatypes.UserRoleEnum.ADMIN,
   )
   @Query(() => MonstersList)
-  Monsters(
-    @Args() args: MonstersListArgs,
-    @Info() info: GraphQLResolveInfo,
-    @Context() ctx: GraphQLContext,
-  ): Promise<MonstersList> {
-    return this.monsterService.findAll(args, info, ctx)
+  Monsters(@Args() args: MonstersListArgs, @Info() info: GraphQLResolveInfo): Promise<MonstersList> {
+    return this.monsterService.findAll(args, info)
   }
 
   @UseGuards(GqlAuthGuard, RolesGuard)

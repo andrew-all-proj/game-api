@@ -1,4 +1,4 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { UserArgs, UserCreateArgs, UserLoginArgs, UserRemoveArgs, UsersListArgs, UserUpdateArgs } from './dto/user.args'
 import { User, UserLogin, UsersList } from './entities/user'
 import * as gameDb from 'game-db'
@@ -139,7 +139,7 @@ export class UserService {
       throw new BadRequestException('User not found')
     }
 
-    const { id, ...updateData } = args
+    const { id: _ignored, ...updateData } = args
     await gameDb.Entities.User.update(userIdToUpdate, updateData)
 
     return user

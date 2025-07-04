@@ -6,6 +6,8 @@ import { createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 import { fetchRequest } from '../../functions/fetchRequest'
 import config from '../../config'
+import { logger } from '../../functions/logger'
+import { BattleLog } from '../monster-battles/entities/monster-battles'
 
 export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedis {
   return {
@@ -109,7 +111,7 @@ export class BattleService {
     return battle
   }
 
-  async attack(battleId: string, damage: number, monsterId: string, socketId: string): Promise<BattleRedis | null> {
+  async attack(battleId: string, damage: number, monsterId: string): Promise<BattleRedis | null> {
     const key = `battle:${battleId}`
     const battleRaw = await this.redisClient.hgetall(key)
     if (!battleRaw || Object.keys(battleRaw).length === 0) return null
@@ -149,7 +151,7 @@ export class BattleService {
       damage,
     }
 
-    const logs = battleRaw.logs ? JSON.parse(battleRaw.logs) : []
+    const logs = battleRaw.logs ? (JSON.parse(battleRaw.logs) as BattleLog[]) : []
     logs.push(logEntry)
 
     battle.lastActionLog = logEntry.action
@@ -179,7 +181,7 @@ export class BattleService {
           url: `http://${config.botServiceUrl}/result-battle/${battleId}`,
           method: 'GET',
           headers: { Authorization: `Bearer ${config.botServiceToken}` },
-        })
+        }).catch((error) => logger.error('Fetch result battle', error))
       }
     }
 

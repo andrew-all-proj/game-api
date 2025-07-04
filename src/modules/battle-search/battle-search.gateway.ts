@@ -15,6 +15,7 @@ import { authenticateWebSocketClient } from '../../functions/ws/authenticate-cli
 import { getMonsterById } from '../../functions/redis/get-monster-by-id'
 import { createBattle } from '../../functions/create-battle'
 import { logger } from '../../functions/logger'
+import { AuthenticatedSocket } from '../../datatypes/common/AuthenticatedSocket'
 
 @WebSocketGateway({
   cors: {
@@ -46,7 +47,7 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
   @SubscribeMessage('registerMonsterForBattle')
   async handleRegisterMonsterForBattle(
     @MessageBody() data: { monsterId: string; isFindOpponent: boolean },
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     const userId = client.data.user?.id
     if (!userId || !data.monsterId) {
@@ -67,7 +68,7 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
   @SubscribeMessage('getOpponents')
   async handleGetOpponents(
     @MessageBody() data: { monsterId: string; cursor?: string; limit?: number },
-    @ConnectedSocket() client: Socket,
+    @ConnectedSocket() client: AuthenticatedSocket,
   ) {
     const userId = client.data.user?.id
     if (!userId) {
@@ -86,10 +87,7 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
   }
 
   @SubscribeMessage('requestDuelChallenge')
-  async handleRequestDuelChallenge(
-    @MessageBody() data: { fromMonsterId: string; toMonsterId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
+  async handleRequestDuelChallenge(@MessageBody() data: { fromMonsterId: string; toMonsterId: string }) {
     const monsterOpponent = await this.battleSerchService.requestDuelChallenge(data.toMonsterId)
     const monster = await this.battleSerchService.requestDuelChallenge(data.fromMonsterId)
 
@@ -101,7 +99,6 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
   @SubscribeMessage('duelAccepted')
   async handleRequestDuelChallengeAccepted(
     @MessageBody() data: { fromMonsterId: string; toMonsterId: string; duelAccepted: boolean },
-    @ConnectedSocket() client: Socket,
   ) {
     if (!data.duelAccepted) {
       const monsterOpponent = await getMonsterById(this.battleSerchService.redisClient, data.fromMonsterId)

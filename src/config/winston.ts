@@ -27,7 +27,7 @@ export function createWinstonLogger() {
 
     transports.push(esTransport)
   } catch (error) {
-    console.warn('⚠️ Elasticsearch transport disabled:', error.message)
+    console.warn('⚠️ Elasticsearch transport disabled:', (error as Error).message)
   }
 
   return {

@@ -55,7 +55,7 @@ export class MonsterService {
           throw new BadRequestException('File not found')
         }
 
-        const { userId, fileId, ...updateData } = args
+        const { userId: _, fileId: _ignored, ...updateData } = args
 
         const monster = manager.create(gameDb.Entities.Monster, {
           ...updateData,
@@ -72,7 +72,9 @@ export class MonsterService {
         return monster
       })
 
-      createSpriteSheetMonster(args.selectedPartsKey, newMonster.id)
+      createSpriteSheetMonster(args.selectedPartsKey, newMonster.id).catch((error) => {
+        logger.error('Create sprite sheet', error)
+      })
 
       return newMonster
     } catch (err) {
@@ -81,7 +83,7 @@ export class MonsterService {
     }
   }
 
-  async findAll(args: MonstersListArgs, info: GraphQLResolveInfo, ctx: GraphQLContext): Promise<MonstersList> {
+  async findAll(args: MonstersListArgs, info: GraphQLResolveInfo): Promise<MonstersList> {
     const { offset, limit, sortOrder = SortOrderEnum.DESC } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.Monster)
@@ -133,7 +135,7 @@ export class MonsterService {
       throw new BadRequestException('Monster not found')
     }
 
-    const { id, ...updateData } = args
+    const { id: _ignored, ...updateData } = args
 
     if (args.isSelected) {
       const selectedMonsters = await gameDb.Entities.Monster.find({

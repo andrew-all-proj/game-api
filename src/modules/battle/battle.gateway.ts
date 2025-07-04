@@ -63,11 +63,8 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
   }
 
   @SubscribeMessage('attack')
-  async handleAttack(
-    @MessageBody() data: { battleId: string; damage: number; monsterId: string },
-    @ConnectedSocket() client: Socket,
-  ) {
-    const battle = await this.battleService.attack(data.battleId, data.damage, data.monsterId, client.id)
+  async handleAttack(@MessageBody() data: { battleId: string; damage: number; monsterId: string }) {
+    const battle = await this.battleService.attack(data.battleId, data.damage, data.monsterId)
     if (!battle) return
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)

@@ -1,4 +1,4 @@
-import { Field, ArgsType, ObjectType, InputType } from '@nestjs/graphql'
+import { Field, ArgsType, InputType } from '@nestjs/graphql'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
 import { IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator'
 import { StringFilter, UuidFilter } from '../../../functions/filters/filters'
