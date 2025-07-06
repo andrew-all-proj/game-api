@@ -15,8 +15,8 @@ import {
 } from './dto/monster.args'
 import { Monster, MonstersList } from './entities/monster'
 import { createSpriteSheetMonster } from '../../functions/createSpriteSheet'
-import { v4 as uuidv4 } from 'uuid'
 import { logger } from '../../functions/logger'
+import { monsterStartingStats } from '../../config/monster-starting-stats'
 
 @Injectable()
 export class MonsterService {
@@ -45,8 +45,6 @@ export class MonsterService {
           throw new BadRequestException('User already has 4 monsters')
         }
 
-        const monsterId = uuidv4()
-
         const file = await manager.findOne(gameDb.Entities.File, {
           where: { id: args.fileId },
         })
@@ -59,12 +57,27 @@ export class MonsterService {
 
         const monster = manager.create(gameDb.Entities.Monster, {
           ...updateData,
-          monsterId,
+          ...monsterStartingStats.monster,
           userId: userIdCreateMonster,
-          level: 1,
         })
 
         await manager.save(monster)
+
+        const attacks = monsterStartingStats.monsterAttacks.map((attack) =>
+          manager.create(gameDb.Entities.MonsterAttacks, {
+            ...attack,
+            monsterId: monster.id,
+          }),
+        )
+        await manager.save(attacks)
+
+        const defenses = monsterStartingStats.monsterDefenses.map((defense) =>
+          manager.create(gameDb.Entities.MonsterDefenses, {
+            ...defense,
+            monsterId: monster.id,
+          }),
+        )
+        await manager.save(defenses)
 
         file.monsterId = monster.id
         await manager.save(file)

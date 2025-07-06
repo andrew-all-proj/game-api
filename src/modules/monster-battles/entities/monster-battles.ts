@@ -10,10 +10,31 @@ export class BattleLog {
   to: string
 
   @Field()
-  action: string
+  action: 'attack' | 'defense'
 
   @Field()
-  damage: number
+  nameAction: string
+
+  @Field({ nullable: true })
+  modifier?: number
+
+  @Field({ nullable: true })
+  damage?: number
+
+  @Field({ nullable: true })
+  block?: number
+
+  @Field({ nullable: true })
+  effect?: string
+
+  @Field({ nullable: true })
+  cooldown?: number
+
+  @Field({ nullable: true })
+  spCost?: number
+
+  @Field({ nullable: true })
+  turnSkip?: number
 
   @Field()
   timestamp: string

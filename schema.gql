@@ -29,10 +29,17 @@ type AdminUsersList {
 
 type BattleLog {
   action: String!
-  damage: Float!
+  block: Float
+  cooldown: Float
+  damage: Float
+  effect: String
   from: String!
+  modifier: Float
+  nameAction: String!
+  spCost: Float
   timestamp: String!
   to: String!
+  turnSkip: Float
 }
 
 enum BattleStatusEnum {
@@ -103,13 +110,32 @@ type FilesList {
 
 type Monster {
   createdAt: DateTime
+  defense: Float
+  evasion: Float
+  experiencePoints: Float
   files: [File!]
+  healthPoints: Float
   id: String
   isSelected: Boolean
   level: Float
+  monsterAttacks: [MonsterAttacks!]
+  monsterDefenses: [MonsterDefenses!]
   name: String
+  stamina: Float
+  strength: Float
   updatedAt: DateTime
   userId: String
+}
+
+type MonsterAttacks {
+  cooldown: Float
+  createdAt: DateTime
+  energyCost: Float
+  id: Float
+  modifier: Float
+  monsterId: String
+  name: String
+  updatedAt: DateTime
 }
 
 type MonsterBattles {
@@ -126,6 +152,17 @@ type MonsterBattles {
 type MonsterBattlesList {
   items: [MonsterBattles!]
   totalCount: Float
+}
+
+type MonsterDefenses {
+  cooldown: Float
+  createdAt: DateTime
+  energyCost: Float
+  id: Float
+  modifier: Float
+  monsterId: String
+  name: String
+  updatedAt: DateTime
 }
 
 type MonstersList {
