@@ -321,6 +321,29 @@ export class BattleService {
         log: logs,
       })
 
+      logger.info('battle', {
+        battleId,
+        winnerMonsterId: winner,
+        challengerMonsterId: battle.challengerMonsterId,
+        opponentMonsterId: battle.opponentMonsterId,
+        challengerStats: battle.challengerStats,
+        opponentStats: battle.opponentStats,
+        challengerFinalHp: battle.challengerMonsterHp,
+        opponentFinalHp: battle.opponentMonsterHp,
+        challengerFinalSp: battle.challengerMonsterStamina,
+        opponentFinalSp: battle.opponentMonsterStamina,
+        finishedAt: new Date().toISOString(),
+        logCount: logs.length,
+      })
+
+      logs.forEach((log, index) => {
+        logger.info('battle-turn', {
+          battleId,
+          turn: index + 1,
+          ...log,
+        })
+      })
+
       if (battle.chatId) {
         fetchRequest({
           url: `http://${config.botServiceUrl}/result-battle/${battleId}`,
