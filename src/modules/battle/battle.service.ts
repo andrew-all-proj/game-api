@@ -157,8 +157,10 @@ export class BattleService {
     monsterId: string,
     actionId: number,
   ) {
-    if (type === 'pass') return null
     const isChallenger = monsterId === battle.challengerMonsterId
+    if (type === 'pass') {
+      return { name: 'Пропуск', modifier: 0, energyCost: 0, cooldown: 0 }
+    }
 
     if (type === 'attack') {
       return isChallenger
@@ -192,9 +194,8 @@ export class BattleService {
     const isChallenger = monsterId === battle.challengerMonsterId
     const defenderId = isChallenger ? battle.opponentMonsterId : battle.challengerMonsterId
 
-    // 👉 Поиск действия (атаки или защиты)
     const action = this.getActionFromBattle(battle, actionType, monsterId, actionId)
-    if (!action) return null //TODO ADD pass
+    if (!action) return null
 
     let damage = 0
     let defenseBlock = 0
@@ -203,9 +204,8 @@ export class BattleService {
     const cost = action.energyCost ?? 0
 
     if (stamina < cost) {
-      console.log('⚠️ Недостаточно стамины, авто-пропуск хода:', stamina, '<', cost)
       actionType = 'pass'
-      actionId = -1 // несуществующий
+      actionId = -1
     }
 
     switch (actionType) {
@@ -268,7 +268,6 @@ export class BattleService {
         return null
     }
 
-    // 👉 Проверка победителя
     let winner: string | null = null
     if (battle.challengerMonsterHp === 0) {
       winner = battle.opponentMonsterId
