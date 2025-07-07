@@ -337,7 +337,7 @@ export class BattleService {
       })
 
       logs.forEach((log, index) => {
-        logger.info('battle-turn', {
+        logBattle.info('battle-turn', {
           battleId,
           turn: index + 1,
           ...log,
