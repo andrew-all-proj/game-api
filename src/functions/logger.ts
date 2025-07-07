@@ -5,3 +5,8 @@ export const logger: winston.Logger = winston.createLogger({
   level: 'info',
   ...createWinstonLogger(),
 })
+
+export const logBattle: winston.Logger = winston.createLogger({
+  level: 'info',
+  ...createWinstonLogger(),
+})

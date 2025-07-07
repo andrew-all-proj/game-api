@@ -5,7 +5,7 @@ import { createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 import { fetchRequest } from '../../functions/fetchRequest'
 import config from '../../config'
-import { logger } from '../../functions/logger'
+import { logBattle, logger } from '../../functions/logger'
 import { BattleRedis, MonsterAttack, MonsterDefense, MonsterStats } from '../../datatypes/common/BattleRedis'
 
 export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedis {
@@ -321,7 +321,7 @@ export class BattleService {
         log: logs,
       })
 
-      logger.info('battle', {
+      logBattle.info('battle', {
         battleId,
         winnerMonsterId: winner,
         challengerMonsterId: battle.challengerMonsterId,
