@@ -1,4 +1,4 @@
-import { createWinstonLogger } from '../config/winston'
+import { createWinstonLogger, createWinstonLoggerBattle } from '../config/winston'
 import * as winston from 'winston'
 
 export const logger: winston.Logger = winston.createLogger({
@@ -8,5 +8,5 @@ export const logger: winston.Logger = winston.createLogger({
 
 export const logBattle: winston.Logger = winston.createLogger({
   level: 'info',
-  ...createWinstonLogger(),
+  ...createWinstonLoggerBattle(),
 })
