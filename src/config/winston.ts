@@ -36,14 +36,7 @@ export function createWinstonLogger() {
 }
 
 export function createWinstonLoggerBattle() {
-  const transports: winston.transport[] = [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.timestamp(),
-        nestWinstonModuleUtilities.format.nestLike('NestApp', { prettyPrint: true }),
-      ),
-    }),
-  ]
+  const transports: winston.transport[] = []
 
   try {
     const esTransport = new ElasticsearchTransport({
@@ -56,6 +49,8 @@ export function createWinstonLoggerBattle() {
         },
       },
       indexPrefix: 'battles',
+      bufferLimit: 100,
+      flushInterval: 2000,
     })
 
     transports.push(esTransport)

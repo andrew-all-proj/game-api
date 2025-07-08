@@ -52,7 +52,6 @@ export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedi
     currentTurnMonsterId: battleRaw.currentTurnMonsterId,
     turnStartTime: parseInt(battleRaw.turnStartTime),
     turnTimeLimit: parseInt(battleRaw.turnTimeLimit),
-    lastActionLog: battleRaw.lastActionLog,
     challengerSocketId: battleRaw.challengerSocketId || '',
     opponentSocketId: battleRaw.opponentSocketId || '',
     challengerReady: battleRaw.challengerReady === '1' ? '1' : '0',
@@ -208,6 +207,8 @@ export class BattleService {
       actionId = -1
     }
 
+    let addStamina = 0
+
     switch (actionType) {
       case 'attack':
         if (battle.activeDefense && battle.activeDefense.monsterId === defenderId) {
@@ -225,10 +226,18 @@ export class BattleService {
 
         const finalDamage = Math.max(0, damage - defenseBlock)
 
+        addStamina = 5
+
         if (isChallenger) {
-          battle.challengerMonsterStamina = Math.max(0, battle.challengerMonsterStamina - (action.energyCost ?? 0) + 5)
+          battle.challengerMonsterStamina = Math.max(
+            0,
+            battle.challengerMonsterStamina - (action.energyCost ?? 0) + addStamina,
+          )
         } else {
-          battle.opponentMonsterStamina = Math.max(0, battle.opponentMonsterStamina - (action.energyCost ?? 0) + 5)
+          battle.opponentMonsterStamina = Math.max(
+            0,
+            battle.opponentMonsterStamina - (action.energyCost ?? 0) + addStamina,
+          )
         }
 
         if (isChallenger) {
@@ -248,19 +257,28 @@ export class BattleService {
             energyCost: action.energyCost ?? 0,
           },
         }
+
+        addStamina = 10
         if (isChallenger) {
-          battle.challengerMonsterStamina = Math.max(0, battle.challengerMonsterStamina - (action.energyCost ?? 0) + 10)
+          battle.challengerMonsterStamina = Math.max(
+            0,
+            battle.challengerMonsterStamina - (action.energyCost ?? 0) + addStamina,
+          )
         } else {
-          battle.opponentMonsterStamina = Math.max(0, battle.opponentMonsterStamina - (action.energyCost ?? 0) + 10)
+          battle.opponentMonsterStamina = Math.max(
+            0,
+            battle.opponentMonsterStamina - (action.energyCost ?? 0) + addStamina,
+          )
         }
 
         break
 
       case 'pass':
+        addStamina = 20
         if (isChallenger) {
-          battle.challengerMonsterStamina = battle.challengerMonsterStamina + 20
+          battle.challengerMonsterStamina = battle.challengerMonsterStamina + addStamina
         } else {
-          battle.opponentMonsterStamina = battle.opponentMonsterStamina + 20
+          battle.opponentMonsterStamina = battle.opponentMonsterStamina + addStamina
         }
         break
 
@@ -296,7 +314,7 @@ export class BattleService {
 
     const logs = battleRaw.logs ? (JSON.parse(battleRaw.logs) as gameDb.datatypes.BattleLog[]) : []
     logs.push(logEntry)
-    battle.lastActionLog = `тип деиствия: ${actionType} название: ${action.name} урон: ${damage} защита: ${defenseBlock} энергия: ${action.energyCost}`
+    battle.lastActionLog = { monsterId: monsterId, actionName: action.name, damage: damage, stamina: addStamina }
 
     const redisUpdatePayload = {
       challengerMonsterHp: battle.challengerMonsterHp.toString(),
@@ -306,7 +324,7 @@ export class BattleService {
       currentTurnMonsterId: battle.currentTurnMonsterId,
       turnStartTime: battle.turnStartTime.toString(),
       turnTimeLimit: battle.turnTimeLimit.toString(),
-      lastActionLog: battle.lastActionLog,
+      lastActionLog: JSON.stringify(battle.lastActionLog),
       activeDefense: battle.activeDefense ? JSON.stringify(battle.activeDefense) : '',
       logs: JSON.stringify(logs),
       ...(winner ? { winnerMonsterId: winner } : {}),
