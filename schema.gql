@@ -121,6 +121,7 @@ type Monster {
   monsterAttacks: [MonsterAttacks!]
   monsterDefenses: [MonsterDefenses!]
   name: String
+  nextLevelExp: Float
   stamina: Float
   strength: Float
   updatedAt: DateTime

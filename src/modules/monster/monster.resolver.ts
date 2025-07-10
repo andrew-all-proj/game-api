@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Context, Info } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Context, Info, ResolveField, Parent } from '@nestjs/graphql'
 import { MonsterService } from './monster.service'
 import { Monster, MonstersList } from './entities/monster'
 import {
@@ -14,6 +14,7 @@ import * as gameDb from 'game-db'
 import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { GraphQLResolveInfo } from 'graphql'
+import { monsterLevels } from 'src/config/monster-levels'
 
 @Resolver(() => Monster)
 export class MonsterResolver {
@@ -76,5 +77,15 @@ export class MonsterResolver {
   @Mutation(() => CommonResponse)
   MonsterRemove(@Args() args: MonsterRemoveArgs, @Context() ctx: GraphQLContext): Promise<CommonResponse> {
     return this.monsterService.remove(args, ctx)
+  }
+
+  @ResolveField(() => Number, { nullable: true })
+  nextLevelExp(@Parent() monster: Monster): number | null {
+    if (!monster || !monster.level) return null
+
+    const nextLevel = monster.level + 1
+    const nextLevelData = monsterLevels.find((l) => l.level === nextLevel)
+
+    return nextLevelData?.exp ?? null
   }
 }

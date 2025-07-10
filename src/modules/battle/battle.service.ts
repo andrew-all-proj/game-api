@@ -339,6 +339,14 @@ export class BattleService {
         log: logs,
       })
 
+      //TODO add field in rediss
+      const winnerMonster = await gameDb.Entities.Monster.findOne({ where: { id: winner } })
+      if (winnerMonster) {
+        await gameDb.Entities.Monster.update(winner, {
+          experiencePoints: winnerMonster.experiencePoints + 1,
+        })
+      }
+
       logBattle.info('battle', {
         battleId,
         winnerMonsterId: winner,

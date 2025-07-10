@@ -15,6 +15,9 @@ export class Monster {
   level?: number
 
   @Field({ nullable: true })
+  nextLevelExp?: number
+
+  @Field({ nullable: true })
   isSelected?: boolean
 
   @Field({ nullable: true })
