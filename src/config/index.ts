@@ -1,5 +1,4 @@
 import * as dotenv from 'dotenv'
-import { monsterStartingStats } from './monster-starting-stats'
 
 dotenv.config()
 

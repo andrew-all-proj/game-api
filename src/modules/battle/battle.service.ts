@@ -7,6 +7,7 @@ import { fetchRequest } from '../../functions/fetchRequest'
 import config from '../../config'
 import { logBattle, logger } from '../../functions/logger'
 import { BattleRedis, MonsterAttack, MonsterDefense, MonsterStats } from '../../datatypes/common/BattleRedis'
+import { updateExpMonster } from '../../functions/updateExpMonster'
 
 export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedis {
   return {
@@ -210,7 +211,7 @@ export class BattleService {
     let addStamina = 0
 
     switch (actionType) {
-      case 'attack':
+      case 'attack': {
         if (battle.activeDefense && battle.activeDefense.monsterId === defenderId) {
           const defenderStats =
             defenderId === battle.challengerMonsterId ? battle.challengerStats : battle.opponentStats
@@ -246,7 +247,7 @@ export class BattleService {
           battle.challengerMonsterHp = Math.max(0, battle.challengerMonsterHp - finalDamage)
         }
         break
-
+      }
       case 'defense':
         battle.activeDefense = {
           monsterId,
@@ -286,11 +287,14 @@ export class BattleService {
         return null
     }
 
-    let winner: string | null = null
+    let winnerMonsterId: string | null = null
+    let loserMonsterId: string | null = null
     if (battle.challengerMonsterHp === 0) {
-      winner = battle.opponentMonsterId
+      winnerMonsterId = battle.opponentMonsterId
+      loserMonsterId = battle.challengerMonsterId
     } else if (battle.opponentMonsterHp === 0) {
-      winner = battle.challengerMonsterId
+      winnerMonsterId = battle.challengerMonsterId
+      loserMonsterId = battle.opponentMonsterId
     }
 
     battle.currentTurnMonsterId = defenderId
@@ -327,29 +331,25 @@ export class BattleService {
       lastActionLog: JSON.stringify(battle.lastActionLog),
       activeDefense: battle.activeDefense ? JSON.stringify(battle.activeDefense) : '',
       logs: JSON.stringify(logs),
-      ...(winner ? { winnerMonsterId: winner } : {}),
+      ...(winnerMonsterId ? { winnerMonsterId: winnerMonsterId } : {}),
     }
 
-    if (winner) {
-      battle.winnerMonsterId = winner
+    if (winnerMonsterId && loserMonsterId) {
+      battle.winnerMonsterId = winnerMonsterId
 
       await gameDb.Entities.MonsterBattles.update(battleId, {
         status: gameDb.datatypes.BattleStatusEnum.FINISHED,
-        winnerMonsterId: winner,
+        winnerMonsterId: winnerMonsterId,
         log: logs,
       })
 
-      //TODO add field in rediss
-      const winnerMonster = await gameDb.Entities.Monster.findOne({ where: { id: winner } })
-      if (winnerMonster) {
-        await gameDb.Entities.Monster.update(winner, {
-          experiencePoints: winnerMonster.experiencePoints + 1,
-        })
-      }
+      updateExpMonster(winnerMonsterId, loserMonsterId).catch((error) => {
+        logger.error(`Failed to update experience for winner ${winnerMonsterId} or loser ${loserMonsterId}:`, error)
+      })
 
       logBattle.info('battle', {
         battleId,
-        winnerMonsterId: winner,
+        winnerMonsterId: winnerMonsterId,
         challengerMonsterId: battle.challengerMonsterId,
         opponentMonsterId: battle.opponentMonsterId,
         challengerStats: battle.challengerStats,

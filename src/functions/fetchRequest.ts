@@ -1,4 +1,4 @@
-import axios, { AxiosRequestConfig, Method } from 'axios'
+import axios, { AxiosRequestConfig, Method, AxiosError } from 'axios'
 import { logger } from './logger'
 
 interface FetchRequest {
@@ -13,7 +13,7 @@ export async function fetchRequest<T = any>({
   method = 'GET',
   data,
   headers = {},
-}: FetchRequest): Promise<{ data?: T; error?: any }> {
+}: FetchRequest): Promise<{ data?: T; error?: unknown }> {
   const config: AxiosRequestConfig = {
     url,
     method,
@@ -25,14 +25,19 @@ export async function fetchRequest<T = any>({
   }
 
   try {
-    const response = await axios(config)
+    const response = await axios<T>(config)
     return { data: response.data }
-  } catch (error: any) {
-    const errorData = error.response?.data || error.message
+  } catch (err) {
+    const error = err as AxiosError
+
+    const status = error.response?.status
+    const errorData = error.response?.data ?? error.message
+
     logger.error(`❌ Request failed [${method}] ${url}`, {
       error: errorData,
-      status: error.response?.status,
+      status,
     })
+
     return { error: errorData }
   }
 }
