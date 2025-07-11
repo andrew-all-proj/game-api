@@ -15,6 +15,7 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { BattleModule } from './modules/battle/battle.module'
 import { WinstonModule } from 'nest-winston'
 import { createWinstonLogger } from './config/winston'
+import { logger } from './functions/logger'
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -41,9 +42,18 @@ interface AuthenticatedRequest extends Request {
       sortSchema: true,
       context: ({ req }: { req: AuthenticatedRequest }) => {
         const user = req.user
-        return { user }
+        return { user, req }
       },
       plugins: [ApolloServerPluginLandingPageLocalDefault({ embed: true })],
+
+      formatError: (error) => {
+        logger.error('GraphQL Error', {
+          message: error.message,
+          path: error.path,
+          extensions: error.extensions,
+        })
+        return error
+      },
     }),
   ],
   exports: [WinstonModule],

@@ -27,8 +27,8 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     this.server = server
   }
 
-  async handleConnection(client: Socket) {
-    const isValid = await authenticateWebSocketClient(client, this.jwtService, this.jwtStrategy)
+  handleConnection(client: Socket) {
+    const isValid = authenticateWebSocketClient(client, this.jwtService, this.jwtStrategy)
     if (!isValid) client.disconnect()
   }
 
@@ -63,8 +63,16 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
   }
 
   @SubscribeMessage('attack')
-  async handleAttack(@MessageBody() data: { battleId: string; damage: number; monsterId: string }) {
-    const battle = await this.battleService.attack(data.battleId, data.damage, data.monsterId)
+  async handleAttack(
+    @MessageBody()
+    data: {
+      battleId: string
+      actionId: number
+      actionType: 'attack' | 'defense' | 'pass'
+      monsterId: string
+    },
+  ) {
+    const battle = await this.battleService.attack(data.battleId, data.actionId, data.actionType, data.monsterId)
     if (!battle) return
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)

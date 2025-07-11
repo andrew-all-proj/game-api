@@ -35,8 +35,8 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
     this.server = server
   }
 
-  async handleConnection(client: Socket) {
-    const isValid = await authenticateWebSocketClient(client, this.jwtService, this.jwtStrategy)
+  handleConnection(client: Socket) {
+    const isValid = authenticateWebSocketClient(client, this.jwtService, this.jwtStrategy)
     if (!isValid) client.disconnect()
   }
 

@@ -12,7 +12,9 @@ export function extractSelectedFieldsAndRelations<T>(
   const selectedFields = new Set<keyof T>()
   const relations = new Set<string>()
 
-  const relationNames = rootEntity.getRepository().metadata.relations.map((r) => r.propertyName)
+  const metadata = rootEntity.getRepository().metadata
+  const relationNames = metadata.relations.map((r) => r.propertyName)
+  const columnNames = metadata.columns.map((c) => c.propertyName)
 
   function traverse(selections: readonly SelectionNode[], path = '') {
     for (const selection of selections) {
@@ -33,7 +35,9 @@ export function extractSelectedFieldsAndRelations<T>(
           relations.add(root)
         }
       } else {
-        selectedFields.add(name)
+        if (columnNames.includes(name as string)) {
+          selectedFields.add(name)
+        }
       }
     }
   }

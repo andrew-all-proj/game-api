@@ -2,7 +2,6 @@ import { Redis } from 'ioredis'
 import * as gameDb from 'game-db'
 import { In } from 'typeorm'
 import { getMonsterById } from './redis/get-monster-by-id'
-import { BattleRedis } from '../datatypes/common/BattleRedis'
 
 interface CreateBattleArgs {
   redisClient: Redis
@@ -34,29 +33,65 @@ export async function createBattleToRedis({
 }: CreateBattleToRedisArgs): Promise<boolean> {
   const { id: battleId, opponentMonsterId, challengerMonsterId } = newBattle
 
-  const battleData: BattleRedis = {
-    battleId,
-    opponentMonsterId,
-    challengerMonsterId,
-    challengerMonsterHp: 100,
-    opponentMonsterHp: 100,
-    currentTurnMonsterId: challengerMonsterId,
-    turnStartTime: Date.now(),
-    turnTimeLimit: 30000,
-    lastActionLog: '',
-    challengerSocketId: challengerSocketId ?? '',
-    opponentSocketId: opponentSocketId ?? '',
-    challengerReady: '0',
-    opponentReady: '0',
-    chatId: chatId,
+  const [opponentMonster, challengerMonster] = await Promise.all([
+    gameDb.Entities.Monster.findOne({
+      where: { id: opponentMonsterId },
+      relations: { monsterAttacks: true, monsterDefenses: true },
+    }),
+    gameDb.Entities.Monster.findOne({
+      where: { id: challengerMonsterId },
+      relations: { monsterAttacks: true, monsterDefenses: true },
+    }),
+  ])
+
+  if (!opponentMonster?.healthPoints || !challengerMonster?.healthPoints) {
+    return false
   }
 
   await redisClient.hset(`battle:${battleId}`, {
-    ...battleData,
-    challengerMonsterHp: battleData.challengerMonsterHp.toString(),
-    opponentMonsterHp: battleData.opponentMonsterHp.toString(),
-    turnStartTime: battleData.turnStartTime.toString(),
-    turnTimeLimit: battleData.turnTimeLimit.toString(),
+    battleId,
+    opponentMonsterId,
+    challengerMonsterId,
+
+    challengerMonsterHp: challengerMonster.healthPoints.toString(),
+    opponentMonsterHp: opponentMonster.healthPoints.toString(),
+
+    challengerMonsterStamina: challengerMonster.stamina.toString(),
+    opponentMonsterStamina: opponentMonster.stamina.toString(),
+
+    challengerStats: JSON.stringify({
+      healthPoints: challengerMonster.healthPoints,
+      stamina: challengerMonster.stamina,
+      strength: challengerMonster.strength,
+      defense: challengerMonster.defense,
+      evasion: challengerMonster.evasion,
+    }),
+
+    opponentStats: JSON.stringify({
+      healthPoints: opponentMonster.healthPoints,
+      stamina: opponentMonster.stamina,
+      strength: opponentMonster.strength,
+      defense: opponentMonster.defense,
+      evasion: opponentMonster.evasion,
+    }),
+
+    challengerAttacks: JSON.stringify(challengerMonster.monsterAttacks),
+    challengerDefenses: JSON.stringify(challengerMonster.monsterDefenses),
+    opponentAttacks: JSON.stringify(opponentMonster.monsterAttacks),
+    opponentDefenses: JSON.stringify(opponentMonster.monsterDefenses),
+
+    currentTurnMonsterId: challengerMonsterId,
+    turnStartTime: Date.now().toString(),
+    turnTimeLimit: '30000',
+    lastActionLog: '',
+
+    challengerSocketId: challengerSocketId ?? '',
+    opponentSocketId: opponentSocketId ?? '',
+
+    challengerReady: '0',
+    opponentReady: '0',
+
+    chatId: chatId ?? '',
   })
 
   await redisClient.expire(`battle:${battleId}`, 3600)

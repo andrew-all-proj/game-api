@@ -1,13 +1,13 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { Redis } from 'ioredis'
 import { Server } from 'socket.io'
-import { BattleRedis } from '../../datatypes/common/BattleRedis'
 import { createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 import { fetchRequest } from '../../functions/fetchRequest'
 import config from '../../config'
-import { logger } from '../../functions/logger'
-import { BattleLog } from '../monster-battles/entities/monster-battles'
+import { logBattle, logger } from '../../functions/logger'
+import { BattleRedis, MonsterAttack, MonsterDefense, MonsterStats } from '../../datatypes/common/BattleRedis'
+import { updateExpMonster } from '../../functions/updateExpMonster'
 
 export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedis {
   return {
@@ -16,15 +16,55 @@ export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedi
     opponentMonsterId: battleRaw.opponentMonsterId,
     challengerMonsterHp: parseInt(battleRaw.challengerMonsterHp),
     opponentMonsterHp: parseInt(battleRaw.opponentMonsterHp),
+
+    challengerMonsterStamina: parseInt(battleRaw.challengerMonsterStamina),
+    opponentMonsterStamina: parseInt(battleRaw.opponentMonsterStamina),
+
+    challengerStats: battleRaw.challengerStats
+      ? (JSON.parse(battleRaw.challengerStats) as MonsterStats)
+      : {
+          healthPoints: 0,
+          stamina: 0,
+          strength: 0,
+          defense: 0,
+          evasion: 0,
+        },
+
+    opponentStats: battleRaw.opponentStats
+      ? (JSON.parse(battleRaw.opponentStats) as MonsterStats)
+      : {
+          healthPoints: 0,
+          stamina: 0,
+          strength: 0,
+          defense: 0,
+          evasion: 0,
+        },
+
+    challengerAttacks: battleRaw.challengerAttacks ? (JSON.parse(battleRaw.challengerAttacks) as MonsterAttack[]) : [],
+
+    challengerDefenses: battleRaw.challengerDefenses
+      ? (JSON.parse(battleRaw.challengerDefenses) as MonsterDefense[])
+      : [],
+
+    opponentAttacks: battleRaw.opponentAttacks ? (JSON.parse(battleRaw.opponentAttacks) as MonsterAttack[]) : [],
+
+    opponentDefenses: battleRaw.opponentDefenses ? (JSON.parse(battleRaw.opponentDefenses) as MonsterDefense[]) : [],
+
     currentTurnMonsterId: battleRaw.currentTurnMonsterId,
     turnStartTime: parseInt(battleRaw.turnStartTime),
     turnTimeLimit: parseInt(battleRaw.turnTimeLimit),
-    lastActionLog: battleRaw.lastActionLog,
     challengerSocketId: battleRaw.challengerSocketId || '',
     opponentSocketId: battleRaw.opponentSocketId || '',
     challengerReady: battleRaw.challengerReady === '1' ? '1' : '0',
     opponentReady: battleRaw.opponentReady === '1' ? '1' : '0',
-    chatId: battleRaw.chatId,
+    chatId: battleRaw.chatId || null,
+
+    activeDefense: battleRaw.activeDefense
+      ? (JSON.parse(battleRaw.activeDefense) as {
+          monsterId: string
+          action: MonsterDefense
+        })
+      : undefined,
   }
 }
 
@@ -111,71 +151,225 @@ export class BattleService {
     return battle
   }
 
-  async attack(battleId: string, damage: number, monsterId: string): Promise<BattleRedis | null> {
+  private getActionFromBattle(
+    battle: BattleRedis,
+    type: 'attack' | 'defense' | 'pass',
+    monsterId: string,
+    actionId: number,
+  ) {
+    const isChallenger = monsterId === battle.challengerMonsterId
+    if (type === 'pass') {
+      return { name: 'Пропуск', modifier: 0, energyCost: 0, cooldown: 0 }
+    }
+
+    if (type === 'attack') {
+      return isChallenger
+        ? battle.challengerAttacks?.find((a) => a.id === actionId)
+        : battle.opponentAttacks?.find((a) => a.id === actionId)
+    }
+
+    if (type === 'defense') {
+      return isChallenger
+        ? battle.challengerDefenses?.find((d) => d.id === actionId)
+        : battle.opponentDefenses?.find((d) => d.id === actionId)
+    }
+
+    return null
+  }
+
+  async attack(
+    battleId: string,
+    actionId: number,
+    actionType: 'attack' | 'defense' | 'pass',
+    monsterId: string,
+  ): Promise<BattleRedis | null> {
     const key = `battle:${battleId}`
     const battleRaw = await this.redisClient.hgetall(key)
     if (!battleRaw || Object.keys(battleRaw).length === 0) return null
 
     const battle = mapBattleRedisRaw(battleRaw)
-
     if (battle.currentTurnMonsterId !== monsterId) return null
 
     const timestamp = new Date().toISOString()
-
     const isChallenger = monsterId === battle.challengerMonsterId
     const defenderId = isChallenger ? battle.opponentMonsterId : battle.challengerMonsterId
 
-    if (isChallenger) {
-      battle.opponentMonsterHp = Math.max(0, battle.opponentMonsterHp - damage)
-    } else {
-      battle.challengerMonsterHp = Math.max(0, battle.challengerMonsterHp - damage)
+    const action = this.getActionFromBattle(battle, actionType, monsterId, actionId)
+    if (!action) return null
+
+    let damage = 0
+    let defenseBlock = 0
+
+    const stamina = isChallenger ? battle.challengerMonsterStamina : battle.opponentMonsterStamina
+    const cost = action.energyCost ?? 0
+
+    if (stamina < cost) {
+      actionType = 'pass'
+      actionId = -1
     }
 
-    let winner: string | null = null
+    let addStamina = 0
 
+    switch (actionType) {
+      case 'attack': {
+        if (battle.activeDefense && battle.activeDefense.monsterId === defenderId) {
+          const defenderStats =
+            defenderId === battle.challengerMonsterId ? battle.challengerStats : battle.opponentStats
+
+          defenseBlock = Math.round(defenderStats.defense * battle.activeDefense.action.modifier)
+
+          delete battle.activeDefense
+        }
+
+        damage = Math.round(
+          action.modifier * (isChallenger ? battle.challengerStats.strength : battle.opponentStats.strength),
+        )
+
+        const finalDamage = Math.max(0, damage - defenseBlock)
+
+        addStamina = 5
+
+        if (isChallenger) {
+          battle.challengerMonsterStamina = Math.max(
+            0,
+            battle.challengerMonsterStamina - (action.energyCost ?? 0) + addStamina,
+          )
+        } else {
+          battle.opponentMonsterStamina = Math.max(
+            0,
+            battle.opponentMonsterStamina - (action.energyCost ?? 0) + addStamina,
+          )
+        }
+
+        if (isChallenger) {
+          battle.opponentMonsterHp = Math.max(0, battle.opponentMonsterHp - finalDamage)
+        } else {
+          battle.challengerMonsterHp = Math.max(0, battle.challengerMonsterHp - finalDamage)
+        }
+        break
+      }
+      case 'defense':
+        battle.activeDefense = {
+          monsterId,
+          action: {
+            name: action.name,
+            modifier: action.modifier,
+            cooldown: action.cooldown ?? 0,
+            energyCost: action.energyCost ?? 0,
+          },
+        }
+
+        addStamina = 10
+        if (isChallenger) {
+          battle.challengerMonsterStamina = Math.max(
+            0,
+            battle.challengerMonsterStamina - (action.energyCost ?? 0) + addStamina,
+          )
+        } else {
+          battle.opponentMonsterStamina = Math.max(
+            0,
+            battle.opponentMonsterStamina - (action.energyCost ?? 0) + addStamina,
+          )
+        }
+
+        break
+
+      case 'pass':
+        addStamina = 20
+        if (isChallenger) {
+          battle.challengerMonsterStamina = battle.challengerMonsterStamina + addStamina
+        } else {
+          battle.opponentMonsterStamina = battle.opponentMonsterStamina + addStamina
+        }
+        break
+
+      default:
+        return null
+    }
+
+    let winnerMonsterId: string | null = null
+    let loserMonsterId: string | null = null
     if (battle.challengerMonsterHp === 0) {
-      winner = battle.opponentMonsterId
+      winnerMonsterId = battle.opponentMonsterId
+      loserMonsterId = battle.challengerMonsterId
     } else if (battle.opponentMonsterHp === 0) {
-      winner = battle.challengerMonsterId
+      winnerMonsterId = battle.challengerMonsterId
+      loserMonsterId = battle.opponentMonsterId
     }
 
     battle.currentTurnMonsterId = defenderId
     battle.turnStartTime = Date.now()
     battle.turnTimeLimit = 30000
 
-    const logEntry = {
-      timestamp,
-      action: `Монстр ${monsterId} нанёс ${damage} урона`,
+    const logEntry: gameDb.datatypes.BattleLog = {
       from: monsterId,
       to: defenderId,
-      damage,
+      action: actionType === 'pass' ? 'attack' : actionType, // TODO add pass
+      nameAction: action.name,
+      modifier: action.modifier,
+      damage: damage,
+      block: 0,
+      effect: undefined,
+      cooldown: action.cooldown ?? 0,
+      spCost: action.energyCost ?? 0,
+      turnSkip: 0,
+      timestamp,
     }
 
-    const logs = battleRaw.logs ? (JSON.parse(battleRaw.logs) as BattleLog[]) : []
+    const logs = battleRaw.logs ? (JSON.parse(battleRaw.logs) as gameDb.datatypes.BattleLog[]) : []
     logs.push(logEntry)
-
-    battle.lastActionLog = logEntry.action
+    battle.lastActionLog = { monsterId: monsterId, actionName: action.name, damage: damage, stamina: addStamina }
 
     const redisUpdatePayload = {
-      challengerMonsterHp: battle.challengerMonsterHp,
-      opponentMonsterHp: battle.opponentMonsterHp,
+      challengerMonsterHp: battle.challengerMonsterHp.toString(),
+      opponentMonsterHp: battle.opponentMonsterHp.toString(),
+      challengerMonsterStamina: battle.challengerMonsterStamina.toString(),
+      opponentMonsterStamina: battle.opponentMonsterStamina.toString(),
       currentTurnMonsterId: battle.currentTurnMonsterId,
-      turnStartTime: battle.turnStartTime,
-      turnTimeLimit: battle.turnTimeLimit,
-      lastActionLog: battle.lastActionLog,
+      turnStartTime: battle.turnStartTime.toString(),
+      turnTimeLimit: battle.turnTimeLimit.toString(),
+      lastActionLog: JSON.stringify(battle.lastActionLog),
+      activeDefense: battle.activeDefense ? JSON.stringify(battle.activeDefense) : '',
       logs: JSON.stringify(logs),
-      ...(battle.winnerMonsterId ? { winnerMonsterId: battle.winnerMonsterId } : {}),
+      ...(winnerMonsterId ? { winnerMonsterId: winnerMonsterId } : {}),
     }
 
-    if (winner) {
-      battle.winnerMonsterId = winner
-      redisUpdatePayload.winnerMonsterId = winner
+    if (winnerMonsterId && loserMonsterId) {
+      battle.winnerMonsterId = winnerMonsterId
 
       await gameDb.Entities.MonsterBattles.update(battleId, {
         status: gameDb.datatypes.BattleStatusEnum.FINISHED,
-        winnerMonsterId: winner,
+        winnerMonsterId: winnerMonsterId,
         log: logs,
       })
+
+      updateExpMonster(winnerMonsterId, loserMonsterId).catch((error) => {
+        logger.error(`Failed to update experience for winner ${winnerMonsterId} or loser ${loserMonsterId}:`, error)
+      })
+
+      logBattle.info('battle', {
+        battleId,
+        winnerMonsterId: winnerMonsterId,
+        challengerMonsterId: battle.challengerMonsterId,
+        opponentMonsterId: battle.opponentMonsterId,
+        challengerStats: battle.challengerStats,
+        opponentStats: battle.opponentStats,
+        challengerFinalHp: battle.challengerMonsterHp,
+        opponentFinalHp: battle.opponentMonsterHp,
+        challengerFinalSp: battle.challengerMonsterStamina,
+        opponentFinalSp: battle.opponentMonsterStamina,
+        finishedAt: new Date().toISOString(),
+        logCount: logs.length,
+      })
+
+      logs.forEach((log, index) => {
+        logBattle.info('battle-turn', {
+          battleId,
+          turn: index + 1,
+          ...log,
+        })
+      })
+
       if (battle.chatId) {
         fetchRequest({
           url: `http://${config.botServiceUrl}/result-battle/${battleId}`,

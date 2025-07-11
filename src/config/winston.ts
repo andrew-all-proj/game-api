@@ -34,3 +34,31 @@ export function createWinstonLogger() {
     transports,
   }
 }
+
+export function createWinstonLoggerBattle() {
+  const transports: winston.transport[] = []
+
+  try {
+    const esTransport = new ElasticsearchTransport({
+      level: 'info',
+      clientOpts: {
+        node: process.env.ELASTICSEARCH_NODE || 'http://localhost:9200',
+        auth: {
+          username: process.env.ELASTIC_USERNAME || '',
+          password: process.env.ELASTIC_PASSWORD || '',
+        },
+      },
+      indexPrefix: 'battles',
+      bufferLimit: 100,
+      flushInterval: 2000,
+    })
+
+    transports.push(esTransport)
+  } catch (error) {
+    console.warn('⚠️ Elasticsearch transport disabled:', (error as Error).message)
+  }
+
+  return {
+    transports,
+  }
+}
