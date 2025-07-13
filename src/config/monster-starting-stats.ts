@@ -37,3 +37,5 @@ export const monsterStartingStats = {
     },
   ],
 }
+
+export const costToCreateMonster = 200

@@ -31,6 +31,12 @@ export class User {
   isRegistered: boolean
 
   @Field({ nullable: true })
+  energy: number
+
+  @Field({ nullable: true })
+  lastEnergyUpdate?: Date
+
+  @Field({ nullable: true })
   avatarFileId: string
 
   @Field(() => File, { nullable: true })
@@ -56,6 +62,9 @@ export class UserLogin {
 
   @Field({ nullable: true })
   isRegistered: boolean
+
+  @Field({ nullable: true })
+  energy: number
 
   @Field(() => File, { nullable: true })
   avatar: File

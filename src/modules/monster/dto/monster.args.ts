@@ -1,6 +1,6 @@
 import { Field, ArgsType, InputType } from '@nestjs/graphql'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
-import { IsNotEmpty, IsOptional, IsString, IsUUID, ValidateNested } from 'class-validator'
+import { IsNotEmpty, IsOptional, IsString, IsUUID, MaxLength, ValidateNested } from 'class-validator'
 import { StringFilter, UuidFilter } from '../../../functions/filters/filters'
 
 @InputType()
@@ -28,6 +28,7 @@ export class SelectedPartsKey {
 @ArgsType()
 export class MonsterCreateArgs {
   @Field({ nullable: true })
+  @MaxLength(15)
   name?: string
 
   @IsUUID()
@@ -78,6 +79,7 @@ export class MonsterUpdateArgs {
   userId: string
 
   @IsOptional()
+  @MaxLength(15)
   @Field({ nullable: true })
   name: string
 

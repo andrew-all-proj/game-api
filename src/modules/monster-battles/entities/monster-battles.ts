@@ -10,7 +10,7 @@ export class BattleLog {
   to: string
 
   @Field()
-  action: 'attack' | 'defense'
+  action: gameDb.datatypes.ActionStatusEnum
 
   @Field()
   nameAction: string

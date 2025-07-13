@@ -1,6 +1,6 @@
 import { Field, ArgsType } from '@nestjs/graphql'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
-import { IsEmail, IsOptional, IsUUID } from 'class-validator'
+import { IsEmail, IsOptional, IsUUID, MaxLength } from 'class-validator'
 import { StringFilter, UuidFilter } from '../../../functions/filters/filters'
 
 @ArgsType()
@@ -15,9 +15,11 @@ export class UserLoginArgs {
 @ArgsType()
 export class UserCreateArgs {
   @Field({ nullable: true })
+  @MaxLength(15)
   name: string
 
   @Field({ nullable: true })
+  @MaxLength(15)
   nameProfessor: string
 
   @Field({ nullable: true })
@@ -71,9 +73,11 @@ export class UserUpdateArgs {
   id: string
 
   @Field({ nullable: true })
+  @MaxLength(15)
   name: string
 
   @Field({ nullable: true })
+  @MaxLength(15)
   nameProfessor: string
 
   @Field({ nullable: true })

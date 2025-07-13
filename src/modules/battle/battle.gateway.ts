@@ -12,6 +12,7 @@ import { BattleService } from './battle.service'
 import { JwtStrategy } from '../../functions/auth/jwt.strategy'
 import { JwtService } from '@nestjs/jwt'
 import { authenticateWebSocketClient } from '../../functions/ws/authenticate-client'
+import * as gameDb from 'game-db'
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
@@ -68,7 +69,7 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     data: {
       battleId: string
       actionId: number
-      actionType: 'attack' | 'defense' | 'pass'
+      actionType: gameDb.datatypes.ActionStatusEnum
       monsterId: string
     },
   ) {
