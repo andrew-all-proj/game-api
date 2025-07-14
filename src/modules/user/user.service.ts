@@ -24,6 +24,7 @@ export class UserService {
       const valid = isValid(args.initData, config.botToken)
 
       if (!valid && !config.local) {
+        logger.error('Invalid initData hash')
         throw new BadRequestException('Invalid initData hash')
       }
 
@@ -33,12 +34,14 @@ export class UserService {
       if (!config.local) {
         tlgUser = parse(args.initData).user
         if (tlgUser?.id === undefined) {
+          logger.error('User not found in initData')
           throw new BadRequestException('User not found in initData')
         }
         tlgId = String(tlgUser.id)
       }
 
       if (!tlgId) {
+        logger.error('User not found in initData')
         throw new BadRequestException('User not found in initData')
       }
 
