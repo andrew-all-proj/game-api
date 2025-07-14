@@ -141,26 +141,26 @@ export class UserService {
 
   async update(args: UserUpdateArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<User> {
     const role = ctx.req.user?.role
-
     let userIdToUpdate = args.id
 
     if (role === gameDb.datatypes.UserRoleEnum.USER) {
       userIdToUpdate = ctx.req.user?.id
     }
 
+    const { id: _ignored, ...updateData } = args
+    await gameDb.Entities.User.update(userIdToUpdate, { ...updateData })
+
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
+
     const user = await gameDb.Entities.User.findOne({
       where: { id: userIdToUpdate },
       relations: relations,
-      select: [...selectedFields, 'avatarFileId'],
+      select: ['id', 'avatarFileId', ...selectedFields],
     })
 
     if (!user) {
-      throw new BadRequestException('User not found')
+      throw new BadRequestException('User not found after update')
     }
-
-    const { id: _ignored, ...updateData } = args
-    await gameDb.Entities.User.update(userIdToUpdate, updateData)
 
     return user
   }

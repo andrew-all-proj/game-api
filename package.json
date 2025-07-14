@@ -36,7 +36,7 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "game-db": "git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.1.8",
+    "game-db": "git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.1.9",
     "graphql": "^16.11.0",
     "ioredis": "^5.6.1",
     "multer": "^1.4.5-lts.2",
