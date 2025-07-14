@@ -16,7 +16,7 @@ import {
 import { Monster, MonstersList } from './entities/monster'
 import { createSpriteSheetMonster } from '../../functions/createSpriteSheet'
 import { logger } from '../../functions/logger'
-import { monsterStartingStats } from '../../config/monster-starting-stats'
+import { costToCreateMonster, monsterStartingStats } from '../../config/monster-starting-stats'
 
 @Injectable()
 export class MonsterService {
@@ -29,6 +29,10 @@ export class MonsterService {
 
       if (role === gameDb.datatypes.UserRoleEnum.USER) {
         userIdCreateMonster = ctx.req.user?.id
+      }
+
+      if (!userIdCreateMonster) {
+        throw new BadRequestException('userId is missing before monster creation')
       }
 
       const newMonster = await gameDb.AppDataSource.transaction(async (manager) => {
@@ -45,6 +49,10 @@ export class MonsterService {
           throw new BadRequestException('User already has 4 monsters')
         }
 
+        if (user.energy < costToCreateMonster) {
+          throw new BadRequestException('Not enough energy to create a monster')
+        }
+
         const file = await manager.findOne(gameDb.Entities.File, {
           where: { id: args.fileId },
         })
@@ -53,12 +61,13 @@ export class MonsterService {
           throw new BadRequestException('File not found')
         }
 
-        const { userId: _, fileId: _ignored, ...updateData } = args
+        user.energy = user.energy - costToCreateMonster
+        await manager.save(user)
 
         const monster = manager.create(gameDb.Entities.Monster, {
-          ...updateData,
-          ...monsterStartingStats.monster,
+          name: args.name,
           userId: userIdCreateMonster,
+          ...monsterStartingStats.monster,
         })
 
         await manager.save(monster)
@@ -92,7 +101,7 @@ export class MonsterService {
       return newMonster
     } catch (err) {
       logger.error('Create monster error', err)
-      throw new BadRequestException('Create monster error')
+      throw new BadRequestException(err.message || 'Create monster error')
     }
   }
 

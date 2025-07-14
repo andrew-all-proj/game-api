@@ -36,11 +36,11 @@ export async function createBattleToRedis({
   const [opponentMonster, challengerMonster] = await Promise.all([
     gameDb.Entities.Monster.findOne({
       where: { id: opponentMonsterId },
-      relations: { monsterAttacks: true, monsterDefenses: true },
+      relations: { monsterAttacks: true, monsterDefenses: true, user: true },
     }),
     gameDb.Entities.Monster.findOne({
       where: { id: challengerMonsterId },
-      relations: { monsterAttacks: true, monsterDefenses: true },
+      relations: { monsterAttacks: true, monsterDefenses: true, user: true },
     }),
   ])
 
@@ -52,6 +52,9 @@ export async function createBattleToRedis({
     battleId,
     opponentMonsterId,
     challengerMonsterId,
+
+    opponentUserId: opponentMonster.user.id,
+    challengerUserId: challengerMonster.user.id,
 
     challengerMonsterHp: challengerMonster.healthPoints.toString(),
     opponentMonsterHp: opponentMonster.healthPoints.toString(),
@@ -99,6 +102,18 @@ export async function createBattleToRedis({
   return true
 }
 
+const checkEnergy = async (monsterId: string): Promise<boolean> => {
+  const monster = await gameDb.Entities.Monster.findOne({ where: { id: monsterId }, relations: ['user'] })
+  if (!monster) {
+    return false
+  }
+  if (monster.user.energy >= 125) {
+    return true
+  }
+
+  return false
+}
+
 export async function createBattle({
   redisClient,
   opponentMonsterId,
@@ -135,6 +150,17 @@ export async function createBattle({
     } else {
       existingBattle.status = gameDb.datatypes.BattleStatusEnum.REJECTED
       await existingBattle.save()
+    }
+  }
+
+  const opponentMonsterUserEnergy = await checkEnergy(opponentMonsterId)
+  const challengerMonsterUserEnergy = await checkEnergy(challengerMonsterId)
+  if (!opponentMonsterUserEnergy || !challengerMonsterUserEnergy) {
+    return {
+      result: false,
+      battleId: null,
+      opponentSocketId: opponent?.socketId ?? null,
+      challengerSocketId: challenger?.socketId ?? null,
     }
   }
 

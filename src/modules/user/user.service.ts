@@ -12,6 +12,7 @@ import { SortOrderEnum } from '../../datatypes/common/SortOrderEnum'
 import { GraphQLResolveInfo } from 'graphql'
 import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
 import { logger } from '../../functions/logger'
+import { calculateAndSaveEnergy } from '../../functions/ calculate-and-save-energy'
 
 @Injectable()
 export class UserService {
@@ -27,9 +28,10 @@ export class UserService {
       }
 
       let tlgId = args.telegramId
+      let tlgUser: any = undefined
 
       if (!config.local) {
-        const tlgUser = parse(args.initData).user
+        tlgUser = parse(args.initData).user
         if (tlgUser?.id === undefined) {
           throw new BadRequestException('User not found in initData')
         }
@@ -44,13 +46,21 @@ export class UserService {
         where: { telegramId: tlgId.toString() },
         relations: ['avatar'],
       })
+
+      if (!user) {
+        user = await gameDb.Entities.User.create({
+          name: tlgUser?.first_name || 'Unknown',
+          telegramId: tlgId.toString(),
+          isRegistered: false,
+          nameProfessor: '',
+          energy: 1000,
+        }).save()
+
+        logger.info(`Created new user: ${user.id}`)
+      }
     } catch (err) {
       logger.error(`Login error:`, err)
       throw new BadRequestException('User initData error')
-    }
-
-    if (!user) {
-      throw new BadRequestException('User not found')
     }
 
     const payload = {
@@ -68,6 +78,7 @@ export class UserService {
       id: user.id,
       nameProfessor: user.nameProfessor,
       avatar: user.avatar,
+      energy: user.energy,
     }
   }
 
@@ -104,19 +115,28 @@ export class UserService {
   async findOne(args: UserArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<User> {
     const role = ctx.req.user?.role
     let userId = args.id
+
     if (role === gameDb.datatypes.UserRoleEnum.USER) {
       userId = ctx.req.user.id
     }
+
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
-    const user = await gameDb.Entities.User.findOne({
+
+    const manager = gameDb.AppDataSource.manager
+
+    const user = await manager.findOne(gameDb.Entities.User, {
       where: { id: userId },
-      relations: relations,
-      select: selectedFields,
+      relations,
+      select: [...selectedFields, 'lastEnergyUpdate'],
     })
+
     if (!user) {
       throw new BadRequestException('User not found')
     }
-    return user
+
+    const updatedUser = await calculateAndSaveEnergy(user, manager)
+
+    return updatedUser
   }
 
   async update(args: UserUpdateArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<User> {

@@ -232,10 +232,12 @@ type User {
   avatarFileId: String
   createdAt: DateTime
   email: String
+  energy: Float
   id: String
   isEmailVerified: Boolean
   isPhoneVerified: Boolean
   isRegistered: Boolean
+  lastEnergyUpdate: DateTime
   name: String
   nameProfessor: String
   phone: String
@@ -245,6 +247,7 @@ type User {
 
 type UserLogin {
   avatar: File
+  energy: Float
   id: String
   isRegistered: Boolean
   nameProfessor: String

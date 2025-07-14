@@ -8,12 +8,15 @@ import config from '../../config'
 import { logBattle, logger } from '../../functions/logger'
 import { BattleRedis, MonsterAttack, MonsterDefense, MonsterStats } from '../../datatypes/common/BattleRedis'
 import { updateExpMonster } from '../../functions/updateExpMonster'
+import { updateEnergy } from '../../functions/update-energy'
 
 export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedis {
   return {
     battleId: battleRaw.battleId,
     challengerMonsterId: battleRaw.challengerMonsterId,
     opponentMonsterId: battleRaw.opponentMonsterId,
+    opponentUserId: battleRaw.opponentUserId,
+    challengerUserId: battleRaw.challengerUserId,
     challengerMonsterHp: parseInt(battleRaw.challengerMonsterHp),
     opponentMonsterHp: parseInt(battleRaw.opponentMonsterHp),
 
@@ -153,22 +156,22 @@ export class BattleService {
 
   private getActionFromBattle(
     battle: BattleRedis,
-    type: 'attack' | 'defense' | 'pass',
+    type: gameDb.datatypes.ActionStatusEnum,
     monsterId: string,
     actionId: number,
   ) {
     const isChallenger = monsterId === battle.challengerMonsterId
-    if (type === 'pass') {
+    if (type === gameDb.datatypes.ActionStatusEnum.PASS) {
       return { name: 'Пропуск', modifier: 0, energyCost: 0, cooldown: 0 }
     }
 
-    if (type === 'attack') {
+    if (type === gameDb.datatypes.ActionStatusEnum.ATTACK) {
       return isChallenger
         ? battle.challengerAttacks?.find((a) => a.id === actionId)
         : battle.opponentAttacks?.find((a) => a.id === actionId)
     }
 
-    if (type === 'defense') {
+    if (type === gameDb.datatypes.ActionStatusEnum.DEFENSE) {
       return isChallenger
         ? battle.challengerDefenses?.find((d) => d.id === actionId)
         : battle.opponentDefenses?.find((d) => d.id === actionId)
@@ -180,7 +183,7 @@ export class BattleService {
   async attack(
     battleId: string,
     actionId: number,
-    actionType: 'attack' | 'defense' | 'pass',
+    actionType: gameDb.datatypes.ActionStatusEnum,
     monsterId: string,
   ): Promise<BattleRedis | null> {
     const key = `battle:${battleId}`
@@ -204,14 +207,14 @@ export class BattleService {
     const cost = action.energyCost ?? 0
 
     if (stamina < cost) {
-      actionType = 'pass'
+      actionType = gameDb.datatypes.ActionStatusEnum.PASS
       actionId = -1
     }
 
     let addStamina = 0
 
     switch (actionType) {
-      case 'attack': {
+      case gameDb.datatypes.ActionStatusEnum.ATTACK: {
         if (battle.activeDefense && battle.activeDefense.monsterId === defenderId) {
           const defenderStats =
             defenderId === battle.challengerMonsterId ? battle.challengerStats : battle.opponentStats
@@ -248,7 +251,7 @@ export class BattleService {
         }
         break
       }
-      case 'defense':
+      case gameDb.datatypes.ActionStatusEnum.DEFENSE:
         battle.activeDefense = {
           monsterId,
           action: {
@@ -274,7 +277,7 @@ export class BattleService {
 
         break
 
-      case 'pass':
+      case gameDb.datatypes.ActionStatusEnum.PASS:
         addStamina = 20
         if (isChallenger) {
           battle.challengerMonsterStamina = battle.challengerMonsterStamina + addStamina
@@ -304,7 +307,7 @@ export class BattleService {
     const logEntry: gameDb.datatypes.BattleLog = {
       from: monsterId,
       to: defenderId,
-      action: actionType === 'pass' ? 'attack' : actionType, // TODO add pass
+      action: actionType,
       nameAction: action.name,
       modifier: action.modifier,
       damage: damage,
@@ -369,6 +372,8 @@ export class BattleService {
           ...log,
         })
       })
+
+      Promise.all([updateEnergy(battle.challengerUserId, -125), updateEnergy(battle.opponentUserId, -125)])
 
       if (battle.chatId) {
         fetchRequest({
