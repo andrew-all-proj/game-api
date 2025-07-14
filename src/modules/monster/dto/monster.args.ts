@@ -28,7 +28,7 @@ export class SelectedPartsKey {
 @ArgsType()
 export class MonsterCreateArgs {
   @Field({ nullable: true })
-  @MaxLength(15)
+  @MaxLength(30)
   name?: string
 
   @IsUUID()
@@ -79,7 +79,7 @@ export class MonsterUpdateArgs {
   userId: string
 
   @IsOptional()
-  @MaxLength(15)
+  @MaxLength(30)
   @Field({ nullable: true })
   name: string
 

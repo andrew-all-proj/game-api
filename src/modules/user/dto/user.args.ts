@@ -15,11 +15,13 @@ export class UserLoginArgs {
 @ArgsType()
 export class UserCreateArgs {
   @Field({ nullable: true })
-  @MaxLength(15)
+  @IsOptional()
+  @MaxLength(30)
   name: string
 
   @Field({ nullable: true })
-  @MaxLength(15)
+  @IsOptional()
+  @MaxLength(30)
   nameProfessor: string
 
   @Field({ nullable: true })
@@ -73,11 +75,12 @@ export class UserUpdateArgs {
   id: string
 
   @Field({ nullable: true })
-  @MaxLength(15)
+  @IsOptional()
+  @MaxLength(30)
   name: string
 
   @Field({ nullable: true })
-  @MaxLength(15)
+  @MaxLength(30)
   nameProfessor: string
 
   @Field({ nullable: true })
