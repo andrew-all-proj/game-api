@@ -36,6 +36,12 @@ export class Monster {
   evasion: number
 
   @Field({ nullable: true })
+  satiety: number
+
+  @Field({ nullable: true })
+  lastFedAt: Date
+
+  @Field({ nullable: true })
   experiencePoints: number
 
   @Field({ nullable: true })

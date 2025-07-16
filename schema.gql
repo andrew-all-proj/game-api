@@ -117,11 +117,13 @@ type Monster {
   healthPoints: Float
   id: String
   isSelected: Boolean
+  lastFedAt: DateTime
   level: Float
   monsterAttacks: [MonsterAttacks!]
   monsterDefenses: [MonsterDefenses!]
   name: String
   nextLevelExp: Float
+  satiety: Float
   stamina: Float
   strength: Float
   updatedAt: DateTime
