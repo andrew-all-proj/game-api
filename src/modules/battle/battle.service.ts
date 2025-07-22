@@ -32,13 +32,17 @@ export class BattleService {
       })
       if (!battleDb) return null
 
-      await createBattleToRedis({
+      const battle = await createBattleToRedis({
         redisClient: this.redisClient,
         newBattle: battleDb,
         challengerSocketId: battleDb.challengerMonsterId === monsterId ? socketId : '',
         opponentSocketId: battleDb.opponentMonsterId === monsterId ? socketId : '',
         chatId: battleDb.chatId,
       })
+
+      if (!battle) {
+        return null
+      }
 
       battleStr = await this.redisClient.get(key)
       if (!battleStr) return null

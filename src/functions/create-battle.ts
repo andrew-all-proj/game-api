@@ -3,6 +3,8 @@ import * as gameDb from 'game-db'
 import { In } from 'typeorm'
 import { getMonsterById } from './redis/get-monster-by-id'
 import { BattleRedis } from '../datatypes/common/BattleRedis'
+import { logger } from './logger'
+import { v4 as uuidv4 } from 'uuid'
 
 interface CreateBattleArgs {
   redisClient: Redis
@@ -49,16 +51,19 @@ export async function createBattleToRedis({
 
   const monsters = [opponentMonster, challengerMonster]
 
+  console.log(opponentMonster?.satiety, challengerMonster?.satiety)
+
+  if ((opponentMonster?.satiety ?? 0) < SATIETY_COST || (challengerMonster?.satiety ?? 0) < SATIETY_COST) {
+    logger.info('Monster is hungry')
+    return false
+  }
+
   for (const monster of monsters) {
     if (!monster) continue
     if ((monster.satiety ?? 0) > SATIETY_COST) {
       monster.satiety = (monster.satiety ?? 0) - SATIETY_COST
       await gameDb.Entities.Monster.update(monster.id, { satiety: monster.satiety })
     }
-  }
-
-  if ((opponentMonster?.satiety ?? 0) <= SATIETY_COST || (challengerMonster?.satiety ?? 0) <= SATIETY_COST) {
-    return false
   }
 
   if (!opponentMonster?.healthPoints || !challengerMonster?.healthPoints) {
@@ -183,6 +188,7 @@ export async function createBattle({
   }
 
   const newBattle = gameDb.Entities.MonsterBattles.create({
+    id: uuidv4(),
     challengerMonsterId,
     opponentMonsterId,
     status: gameDb.datatypes.BattleStatusEnum.PENDING,
@@ -190,7 +196,7 @@ export async function createBattle({
 
   await newBattle.save()
 
-  await createBattleToRedis({
+  const battleRedis = await createBattleToRedis({
     redisClient,
     newBattle,
     opponentSocketId: opponent?.socketId,
@@ -199,7 +205,7 @@ export async function createBattle({
   })
 
   return {
-    result: true,
+    result: battleRedis,
     battleId: newBattle.id,
     opponentSocketId: opponent?.socketId,
     challengerSocketId: challenger?.socketId,
