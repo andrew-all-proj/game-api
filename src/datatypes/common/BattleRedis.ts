@@ -77,4 +77,7 @@ export interface BattleRedis {
   opponentReady: '1' | '0'
   winnerMonsterId?: string
   chatId?: string | null
+
+  opponentGetFood?: number
+  challengerGetFood?: number
 }

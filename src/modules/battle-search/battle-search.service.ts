@@ -56,7 +56,7 @@ export class BattleSearchService {
       level: monsterData.level.toString(),
     })
 
-    await this.redisClient.expire(`monster:${monsterId}`, TTL) // TTL 1 hour
+    await this.redisClient.expire(`monster:${monsterId}`, TTL)
 
     return true
   }

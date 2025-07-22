@@ -13,6 +13,7 @@ import { GraphQLResolveInfo } from 'graphql'
 import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
 import { logger } from '../../functions/logger'
 import { calculateAndSaveEnergy } from '../../functions/ calculate-and-save-energy'
+import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
 
 @Injectable()
 export class UserService {
@@ -89,7 +90,7 @@ export class UserService {
     try {
       const user = await gameDb.Entities.User.create({ ...args }).save()
       logger.info(`Create new user: ${user.id}`)
-      return user
+      return Object.assign(new User(), user)
     } catch (err) {
       logger.error(`Create user error`, err)
       throw new BadRequestException('Create user error')
@@ -143,11 +144,10 @@ export class UserService {
   }
 
   async update(args: UserUpdateArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<User> {
-    const role = ctx.req.user?.role
-    let userIdToUpdate = args.id
+    const userIdToUpdate = resolveUserIdByRole(ctx.req.user?.role, ctx, args.id)
 
-    if (role === gameDb.datatypes.UserRoleEnum.USER) {
-      userIdToUpdate = ctx.req.user?.id
+    if (!userIdToUpdate) {
+      throw new BadRequestException('User id not found')
     }
 
     const { id: _ignored, ...updateData } = args
