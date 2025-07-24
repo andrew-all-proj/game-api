@@ -99,16 +99,22 @@ export class MonsterService {
       })
 
       return newMonster
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error('Create monster error', err)
-      throw new BadRequestException(err.message || 'Create monster error')
+      const message =
+        err instanceof Error
+          ? err.message
+          : typeof err === 'object' && err && 'message' in err
+            ? String((err as { message: string }).message)
+            : String(err)
+      throw new BadRequestException(message)
     }
   }
 
   async findAll(args: MonstersListArgs, info: GraphQLResolveInfo): Promise<MonstersList> {
-    const { offset, limit, sortOrder = SortOrderEnum.DESC } = args || {}
+    const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.Monster)
-    const where = buildQueryFilters(args)
+    const where = buildQueryFilters(filters)
     const [items, totalCount] = await gameDb.Entities.Monster.findAndCount({
       where: { ...where },
       order: {

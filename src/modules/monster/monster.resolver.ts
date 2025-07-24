@@ -15,10 +15,15 @@ import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { GraphQLResolveInfo } from 'graphql'
 import { monsterLevels } from 'src/config/monster-levels'
+import { MonsterFeedService } from './monster-feed.service'
+import { MonsterFeedArgs } from './dto/monster-feed.args'
 
 @Resolver(() => Monster)
 export class MonsterResolver {
-  constructor(private readonly monsterService: MonsterService) {}
+  constructor(
+    private readonly monsterService: MonsterService,
+    private readonly monsterFeedService: MonsterFeedService,
+  ) {}
 
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles(gameDb.datatypes.UserRoleEnum.USER, gameDb.datatypes.UserRoleEnum.SUPER_ADMIN)
@@ -77,6 +82,13 @@ export class MonsterResolver {
   @Mutation(() => CommonResponse)
   MonsterRemove(@Args() args: MonsterRemoveArgs, @Context() ctx: GraphQLContext): Promise<CommonResponse> {
     return this.monsterService.remove(args, ctx)
+  }
+
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles(gameDb.datatypes.UserRoleEnum.USER)
+  @Mutation(() => CommonResponse)
+  MonsterFeed(@Args() args: MonsterFeedArgs, @Context() ctx: GraphQLContext): Promise<CommonResponse> {
+    return this.monsterFeedService.feed(args, ctx)
   }
 
   @ResolveField(() => Number, { nullable: true })

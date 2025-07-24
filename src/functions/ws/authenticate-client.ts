@@ -3,12 +3,14 @@ import { JwtStrategy } from '../auth/jwt.strategy'
 import { logger } from '../logger'
 import { AuthenticatedSocket } from '../../datatypes/common/AuthenticatedSocket'
 import { JwtPayload } from '../auth/jwt.strategy'
+import { Redis } from 'ioredis'
 
-export function authenticateWebSocketClient(
+export async function authenticateWebSocketClient(
   client: AuthenticatedSocket,
   jwtService: JwtService,
   jwtStrategy: JwtStrategy,
-): boolean {
+  redisClient: Redis,
+): Promise<boolean> {
   try {
     const token = String(
       client.handshake.auth?.token || client.handshake.headers?.authorization?.replace('Bearer ', ''),
@@ -19,6 +21,11 @@ export function authenticateWebSocketClient(
     const payload = jwtStrategy.validate(decoded)
 
     client.data.user = payload
+
+    await redisClient.hset(`user:${payload.id}`, 'socketId', client.id)
+
+    await redisClient.expire(`user:${payload.id}`, 1800)
+
     return true
   } catch (err) {
     if (err instanceof Error) {

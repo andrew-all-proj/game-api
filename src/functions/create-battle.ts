@@ -2,6 +2,9 @@ import { Redis } from 'ioredis'
 import * as gameDb from 'game-db'
 import { In } from 'typeorm'
 import { getMonsterById } from './redis/get-monster-by-id'
+import { BattleRedis } from '../datatypes/common/BattleRedis'
+import { logger } from './logger'
+import { v4 as uuidv4 } from 'uuid'
 
 interface CreateBattleArgs {
   redisClient: Redis
@@ -24,6 +27,8 @@ interface CreateBattleToRedisArgs {
   chatId?: string
 }
 
+const SATIETY_COST = 25
+
 export async function createBattleToRedis({
   redisClient,
   newBattle,
@@ -44,11 +49,28 @@ export async function createBattleToRedis({
     }),
   ])
 
+  const monsters = [opponentMonster, challengerMonster]
+
+  console.log(opponentMonster?.satiety, challengerMonster?.satiety)
+
+  if ((opponentMonster?.satiety ?? 0) < SATIETY_COST || (challengerMonster?.satiety ?? 0) < SATIETY_COST) {
+    logger.info('Monster is hungry')
+    return false
+  }
+
+  for (const monster of monsters) {
+    if (!monster) continue
+    if ((monster.satiety ?? 0) > SATIETY_COST) {
+      monster.satiety = (monster.satiety ?? 0) - SATIETY_COST
+      await gameDb.Entities.Monster.update(monster.id, { satiety: monster.satiety })
+    }
+  }
+
   if (!opponentMonster?.healthPoints || !challengerMonster?.healthPoints) {
     return false
   }
 
-  await redisClient.hset(`battle:${battleId}`, {
+  const battle: BattleRedis = {
     battleId,
     opponentMonsterId,
     challengerMonsterId,
@@ -56,37 +78,37 @@ export async function createBattleToRedis({
     opponentUserId: opponentMonster.user.id,
     challengerUserId: challengerMonster.user.id,
 
-    challengerMonsterHp: challengerMonster.healthPoints.toString(),
-    opponentMonsterHp: opponentMonster.healthPoints.toString(),
+    challengerMonsterHp: challengerMonster.healthPoints,
+    opponentMonsterHp: opponentMonster.healthPoints,
 
-    challengerMonsterStamina: challengerMonster.stamina.toString(),
-    opponentMonsterStamina: opponentMonster.stamina.toString(),
+    challengerMonsterStamina: challengerMonster.stamina,
+    opponentMonsterStamina: opponentMonster.stamina,
 
-    challengerStats: JSON.stringify({
+    challengerStats: {
       healthPoints: challengerMonster.healthPoints,
       stamina: challengerMonster.stamina,
       strength: challengerMonster.strength,
       defense: challengerMonster.defense,
       evasion: challengerMonster.evasion,
-    }),
-
-    opponentStats: JSON.stringify({
+    },
+    opponentStats: {
       healthPoints: opponentMonster.healthPoints,
       stamina: opponentMonster.stamina,
       strength: opponentMonster.strength,
       defense: opponentMonster.defense,
       evasion: opponentMonster.evasion,
-    }),
+    },
 
-    challengerAttacks: JSON.stringify(challengerMonster.monsterAttacks),
-    challengerDefenses: JSON.stringify(challengerMonster.monsterDefenses),
-    opponentAttacks: JSON.stringify(opponentMonster.monsterAttacks),
-    opponentDefenses: JSON.stringify(opponentMonster.monsterDefenses),
+    challengerAttacks: challengerMonster.monsterAttacks ?? [],
+    challengerDefenses: challengerMonster.monsterDefenses ?? [],
+    opponentAttacks: opponentMonster.monsterAttacks ?? [],
+    opponentDefenses: opponentMonster.monsterDefenses ?? [],
 
     currentTurnMonsterId: challengerMonsterId,
-    turnStartTime: Date.now().toString(),
-    turnTimeLimit: '30000',
-    lastActionLog: '',
+    turnStartTime: Date.now(),
+    turnTimeLimit: 30000,
+    lastActionLog: undefined,
+    logs: [],
 
     challengerSocketId: challengerSocketId ?? '',
     opponentSocketId: opponentSocketId ?? '',
@@ -95,8 +117,9 @@ export async function createBattleToRedis({
     opponentReady: '0',
 
     chatId: chatId ?? '',
-  })
+  }
 
+  await redisClient.set(`battle:${battleId}`, JSON.stringify(battle))
   await redisClient.expire(`battle:${battleId}`, 3600)
 
   return true
@@ -165,6 +188,7 @@ export async function createBattle({
   }
 
   const newBattle = gameDb.Entities.MonsterBattles.create({
+    id: uuidv4(),
     challengerMonsterId,
     opponentMonsterId,
     status: gameDb.datatypes.BattleStatusEnum.PENDING,
@@ -172,7 +196,7 @@ export async function createBattle({
 
   await newBattle.save()
 
-  await createBattleToRedis({
+  const battleRedis = await createBattleToRedis({
     redisClient,
     newBattle,
     opponentSocketId: opponent?.socketId,
@@ -181,7 +205,7 @@ export async function createBattle({
   })
 
   return {
-    result: true,
+    result: battleRedis,
     battleId: newBattle.id,
     opponentSocketId: opponent?.socketId,
     challengerSocketId: challenger?.socketId,

@@ -56,9 +56,13 @@ export class BattleSearchService {
       level: monsterData.level.toString(),
     })
 
-    await this.redisClient.expire(`monster:${monsterId}`, TTL) // TTL 1 hour
+    await this.redisClient.expire(`monster:${monsterId}`, TTL)
 
     return true
+  }
+
+  async getSocketId(userId: string): Promise<string | null> {
+    return await this.redisClient.hget(`user:${userId}`, 'socketId')
   }
 
   async getAvailableOpponentsPaged(
@@ -90,7 +94,6 @@ export class BattleSearchService {
             avatar: data.avatar,
           })
         }
-
         if (opponents.length >= limit) {
           return { opponents, nextCursor }
         }

@@ -1,5 +1,6 @@
 import { ObjectType, Field } from '@nestjs/graphql'
 import { File } from '../../../modules/file/entities/file'
+import { UserInventory } from '../../user-inventory/entities/user-inventory'
 
 @ObjectType()
 export class User {
@@ -41,6 +42,9 @@ export class User {
 
   @Field(() => File, { nullable: true })
   avatar: File
+
+  @Field(() => [UserInventory], { nullable: true })
+  userInventories?: UserInventory[]
 
   @Field({ nullable: true })
   updatedAt?: Date

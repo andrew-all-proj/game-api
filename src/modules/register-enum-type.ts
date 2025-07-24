@@ -21,3 +21,7 @@ registerEnumType(SortOrderEnum, {
 registerEnumType(gameDb.datatypes.BattleStatusEnum, {
   name: 'BattleStatusEnum',
 })
+
+registerEnumType(gameDb.datatypes.UserInventoryTypeEnum, {
+  name: 'UserInventoryTypeEnum',
+})

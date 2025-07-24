@@ -1,8 +1,10 @@
 import * as gameDb from 'game-db'
-import { User } from '../modules/user/entities/user'
 import { EntityManager } from 'typeorm'
 
-export async function calculateAndSaveEnergy(user: gameDb.Entities.User, manager: EntityManager): Promise<User> {
+export async function calculateAndSaveEnergy(
+  user: gameDb.Entities.User,
+  manager: EntityManager,
+): Promise<gameDb.Entities.User> {
   const now = new Date()
 
   const last = user.lastEnergyUpdate ? new Date(user.lastEnergyUpdate) : new Date(now.getTime() - 5 * 60 * 1000)

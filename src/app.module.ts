@@ -16,6 +16,7 @@ import { BattleModule } from './modules/battle/battle.module'
 import { WinstonModule } from 'nest-winston'
 import { createWinstonLogger } from './config/winston'
 import { logger } from './functions/logger'
+import { UserInventoryModule } from './modules/user-inventory/user-inventory.module'
 
 interface AuthenticatedRequest extends Request {
   user?: {
@@ -34,6 +35,7 @@ interface AuthenticatedRequest extends Request {
     MonsterModule,
     UserModule,
     UploadModule,
+    UserInventoryModule,
     WinstonModule.forRoot(createWinstonLogger()),
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,

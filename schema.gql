@@ -63,7 +63,9 @@ enum ContentTypeEnum {
   AVATAR_MONSTER
   AVATAR_PROFESSOR
   BASE_SPRITE_SHEET_MONSTERS
+  FOOD
   MAIN_SPRITE_SHEET_MONSTERS
+  MUTAGEN
   SPRITE_SHEET_MONSTER
   SPRITE_SHEET_USER_AVATAR
 }
@@ -108,6 +110,17 @@ type FilesList {
   totalCount: Float
 }
 
+type Food {
+  createdAt: DateTime
+  description: String
+  iconFile: File
+  iconFileId: String
+  id: String
+  name: String
+  satietyBonus: Float
+  updatedAt: DateTime
+}
+
 type Monster {
   createdAt: DateTime
   defense: Float
@@ -117,11 +130,13 @@ type Monster {
   healthPoints: Float
   id: String
   isSelected: Boolean
+  lastFedAt: DateTime
   level: Float
   monsterAttacks: [MonsterAttacks!]
   monsterDefenses: [MonsterDefenses!]
   name: String
   nextLevelExp: Float
+  satiety: Float
   stamina: Float
   strength: Float
   updatedAt: DateTime
@@ -171,6 +186,17 @@ type MonstersList {
   totalCount: Float
 }
 
+type Mutagen {
+  createdAt: DateTime
+  description: String
+  effectDescription: String
+  iconFile: File
+  iconFileId: String
+  id: String
+  name: String
+  updatedAt: DateTime
+}
+
 type Mutation {
   AdminUserCreate(email: String!, name: String!, password: String!, role: UserRoleEnum, surname: String, telegramId: String): AdminUser!
   AdminUserLogin(email: String!, password: String!): AdminUserLogin!
@@ -180,9 +206,12 @@ type Mutation {
   FileUpdate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, id: String!, name: String, url: String): File!
   MonsterBattleUpdate(id: String!, status: BattleStatusEnum): MonsterBattles!
   MonsterCreate(fileId: String!, name: String, selectedPartsKey: SelectedPartsKey!, userId: String): Monster!
+  MonsterFeed(monsterId: String!, quantity: Float, userInventoryId: String!): CommonResponse!
   MonsterRemove(id: String!, userId: String): CommonResponse!
   MonsterUpdate(id: String!, isSelected: Boolean, name: String, userId: String): Monster!
   UserCreate(avatarFileId: String, email: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String): User!
+  UserInventoryCreate(foodId: String, mutagenId: String, quantity: Float, userId: String): UserInventory!
+  UserInventoryUpdate(id: String!, quantity: Float): UserInventory!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): CommonResponse!
   UserUpdate(avatarFileId: String, email: String, id: String!, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String): User!
@@ -206,6 +235,8 @@ type Query {
   MonsterBattles(challengerMonsterId: UuidFilter, id: UuidFilter, limit: Float!, offset: Float!, opponentMonsterId: UuidFilter, sortOrder: SortOrderEnum, status: BattleStatusFilter, winnerId: UuidFilter): MonsterBattlesList!
   Monsters(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, userId: UuidFilter): MonstersList!
   User(id: String!): User!
+  UserInventories(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, type: UserInventoryTypeFilter, userId: UuidFilter): UserInventoriesList!
+  UserInventory(id: String!): UserInventory!
   Users(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): UsersList!
 }
 
@@ -243,6 +274,36 @@ type User {
   phone: String
   telegramId: String
   updatedAt: DateTime
+  userInventories: [UserInventory!]
+}
+
+type UserInventoriesList {
+  items: [UserInventory!]
+  totalCount: Float
+}
+
+type UserInventory {
+  createdAt: DateTime
+  food: Food
+  foodId: String
+  id: String
+  mutagen: Mutagen
+  mutagenId: String
+  quantity: Float
+  type: UserInventoryTypeEnum
+  updatedAt: DateTime
+  user: User
+  userId: String
+}
+
+enum UserInventoryTypeEnum {
+  FOOD
+  MUTAGEN
+}
+
+input UserInventoryTypeFilter {
+  eq: UserInventoryTypeEnum
+  in: [UserInventoryTypeEnum!]
 }
 
 type UserLogin {

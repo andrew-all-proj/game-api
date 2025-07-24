@@ -13,6 +13,14 @@ import { GraphQLResolveInfo } from 'graphql'
 import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'
 import { logger } from '../../functions/logger'
 import { calculateAndSaveEnergy } from '../../functions/ calculate-and-save-energy'
+import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
+
+interface TelegramUser {
+  id: number | string
+  first_name?: string
+  last_name?: string
+  username?: string
+}
 
 @Injectable()
 export class UserService {
@@ -29,10 +37,11 @@ export class UserService {
       }
 
       let tlgId = args.telegramId
-      let tlgUser: any = undefined
+      let tlgUser: TelegramUser | undefined = undefined
 
       if (!config.local) {
-        tlgUser = parse(args.initData).user
+        const parsed = parse(args.initData) as { user?: TelegramUser }
+        tlgUser = parsed.user
         if (tlgUser?.id === undefined) {
           logger.error('User not found in initData')
           throw new BadRequestException('User not found in initData')
@@ -89,7 +98,7 @@ export class UserService {
     try {
       const user = await gameDb.Entities.User.create({ ...args }).save()
       logger.info(`Create new user: ${user.id}`)
-      return user
+      return Object.assign(new User(), user)
     } catch (err) {
       logger.error(`Create user error`, err)
       throw new BadRequestException('Create user error')
@@ -97,10 +106,10 @@ export class UserService {
   }
 
   async findAll(args: UsersListArgs, info: GraphQLResolveInfo): Promise<UsersList> {
-    const { offset, limit, sortOrder = SortOrderEnum.DESC } = args || {}
+    const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
-    const where = buildQueryFilters(args)
+    const where = buildQueryFilters(filters)
     const [items, totalCount] = await gameDb.Entities.User.findAndCount({
       where: { ...where },
       order: {
@@ -143,11 +152,10 @@ export class UserService {
   }
 
   async update(args: UserUpdateArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<User> {
-    const role = ctx.req.user?.role
-    let userIdToUpdate = args.id
+    const userIdToUpdate = resolveUserIdByRole(ctx.req.user?.role, ctx, args.id)
 
-    if (role === gameDb.datatypes.UserRoleEnum.USER) {
-      userIdToUpdate = ctx.req.user?.id
+    if (!userIdToUpdate) {
+      throw new BadRequestException('User id not found')
     }
 
     const { id: _ignored, ...updateData } = args

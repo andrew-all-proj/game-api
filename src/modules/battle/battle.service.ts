@@ -6,76 +6,16 @@ import * as gameDb from 'game-db'
 import { fetchRequest } from '../../functions/fetchRequest'
 import config from '../../config'
 import { logBattle, logger } from '../../functions/logger'
-import { BattleRedis, MonsterAttack, MonsterDefense, MonsterStats } from '../../datatypes/common/BattleRedis'
+import { BattleRedis } from '../../datatypes/common/BattleRedis'
 import { updateExpMonster } from '../../functions/updateExpMonster'
 import { updateEnergy } from '../../functions/update-energy'
-
-export function mapBattleRedisRaw(battleRaw: Record<string, string>): BattleRedis {
-  return {
-    battleId: battleRaw.battleId,
-    challengerMonsterId: battleRaw.challengerMonsterId,
-    opponentMonsterId: battleRaw.opponentMonsterId,
-    opponentUserId: battleRaw.opponentUserId,
-    challengerUserId: battleRaw.challengerUserId,
-    challengerMonsterHp: parseInt(battleRaw.challengerMonsterHp),
-    opponentMonsterHp: parseInt(battleRaw.opponentMonsterHp),
-
-    challengerMonsterStamina: parseInt(battleRaw.challengerMonsterStamina),
-    opponentMonsterStamina: parseInt(battleRaw.opponentMonsterStamina),
-
-    challengerStats: battleRaw.challengerStats
-      ? (JSON.parse(battleRaw.challengerStats) as MonsterStats)
-      : {
-          healthPoints: 0,
-          stamina: 0,
-          strength: 0,
-          defense: 0,
-          evasion: 0,
-        },
-
-    opponentStats: battleRaw.opponentStats
-      ? (JSON.parse(battleRaw.opponentStats) as MonsterStats)
-      : {
-          healthPoints: 0,
-          stamina: 0,
-          strength: 0,
-          defense: 0,
-          evasion: 0,
-        },
-
-    challengerAttacks: battleRaw.challengerAttacks ? (JSON.parse(battleRaw.challengerAttacks) as MonsterAttack[]) : [],
-
-    challengerDefenses: battleRaw.challengerDefenses
-      ? (JSON.parse(battleRaw.challengerDefenses) as MonsterDefense[])
-      : [],
-
-    opponentAttacks: battleRaw.opponentAttacks ? (JSON.parse(battleRaw.opponentAttacks) as MonsterAttack[]) : [],
-
-    opponentDefenses: battleRaw.opponentDefenses ? (JSON.parse(battleRaw.opponentDefenses) as MonsterDefense[]) : [],
-
-    currentTurnMonsterId: battleRaw.currentTurnMonsterId,
-    turnStartTime: parseInt(battleRaw.turnStartTime),
-    turnTimeLimit: parseInt(battleRaw.turnTimeLimit),
-    challengerSocketId: battleRaw.challengerSocketId || '',
-    opponentSocketId: battleRaw.opponentSocketId || '',
-    challengerReady: battleRaw.challengerReady === '1' ? '1' : '0',
-    opponentReady: battleRaw.opponentReady === '1' ? '1' : '0',
-    chatId: battleRaw.chatId || null,
-
-    activeDefense: battleRaw.activeDefense
-      ? (JSON.parse(battleRaw.activeDefense) as {
-          monsterId: string
-          action: MonsterDefense
-        })
-      : undefined,
-  }
-}
+import { updateFood } from 'src/functions/ update-food'
 
 @Injectable()
 export class BattleService {
   private server: Server
 
-  constructor(@Inject('REDIS_CLIENT') private readonly redisClient: Redis) {}
+  constructor(@Inject('REDIS_CLIENT') readonly redisClient: Redis) {}
 
   setServer(server: Server) {
     this.server = server
@@ -83,17 +23,16 @@ export class BattleService {
 
   async getBattle(battleId: string, monsterId: string, socketId: string): Promise<BattleRedis | null> {
     const key = `battle:${battleId}`
-    let battleRaw = await this.redisClient.hgetall(key)
-    if (!battleRaw || Object.keys(battleRaw).length === 0) {
-      //CREATE BATTLE if has in db (if battle created in bot)
+
+    let battleStr = await this.redisClient.get(key)
+    if (!battleStr) {
+      // CREATE BATTLE if has in db (if battle created in bot)
       const battleDb = await gameDb.Entities.MonsterBattles.findOne({
         where: { id: battleId, status: gameDb.datatypes.BattleStatusEnum.ACCEPTED },
       })
-      if (!battleDb) {
-        return null
-      }
+      if (!battleDb) return null
 
-      await createBattleToRedis({
+      const battle = await createBattleToRedis({
         redisClient: this.redisClient,
         newBattle: battleDb,
         challengerSocketId: battleDb.challengerMonsterId === monsterId ? socketId : '',
@@ -101,38 +40,39 @@ export class BattleService {
         chatId: battleDb.chatId,
       })
 
-      battleRaw = await this.redisClient.hgetall(key)
+      if (!battle) {
+        return null
+      }
+
+      battleStr = await this.redisClient.get(key)
+      if (!battleStr) return null
     }
 
-    const isChallenger = battleRaw.challengerMonsterId === monsterId
-    const isOpponent = battleRaw.opponentMonsterId === monsterId
+    const battle: BattleRedis = JSON.parse(battleStr) as BattleRedis
+
+    const isChallenger = battle.challengerMonsterId === monsterId
+    const isOpponent = battle.opponentMonsterId === monsterId
 
     if (!isChallenger && !isOpponent) return null
 
-    const updates: Record<string, string> = {}
     if (isChallenger) {
-      updates.challengerSocketId = socketId
-      updates.challengerReady = '0'
+      battle.challengerSocketId = socketId
+      battle.challengerReady = '0'
     } else {
-      updates.opponentSocketId = socketId
-      updates.opponentReady = '0'
+      battle.opponentSocketId = socketId
+      battle.opponentReady = '0'
     }
 
-    await this.redisClient.hset(key, updates)
+    await this.redisClient.set(key, JSON.stringify(battle))
 
-    const updatedBattleRaw = {
-      ...battleRaw,
-      ...updates,
-    }
-
-    return mapBattleRedisRaw(updatedBattleRaw)
+    return battle
   }
 
   async startBattle(battleId: string, monsterId: string, socketId: string): Promise<BattleRedis | null> {
-    const battleRaw = await this.redisClient.hgetall(`battle:${battleId}`)
-    if (!battleRaw || Object.keys(battleRaw).length === 0) return null
+    const battleRaw = await this.redisClient.get(`battle:${battleId}`)
+    if (!battleRaw) return null
 
-    const battle = mapBattleRedisRaw(battleRaw)
+    const battle: BattleRedis = JSON.parse(battleRaw) as BattleRedis
 
     if (monsterId === battle.challengerMonsterId) {
       battle.challengerSocketId = socketId
@@ -144,12 +84,7 @@ export class BattleService {
       return null
     }
 
-    await this.redisClient.hset(`battle:${battleId}`, {
-      challengerSocketId: battle.challengerSocketId,
-      opponentSocketId: battle.opponentSocketId,
-      challengerReady: battle.challengerReady,
-      opponentReady: battle.opponentReady,
-    })
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle))
 
     return battle
   }
@@ -187,10 +122,10 @@ export class BattleService {
     monsterId: string,
   ): Promise<BattleRedis | null> {
     const key = `battle:${battleId}`
-    const battleRaw = await this.redisClient.hgetall(key)
-    if (!battleRaw || Object.keys(battleRaw).length === 0) return null
+    const battleStr = await this.redisClient.get(key)
+    if (!battleStr) return null
 
-    const battle = mapBattleRedisRaw(battleRaw)
+    const battle: BattleRedis = JSON.parse(battleStr) as BattleRedis
     if (battle.currentTurnMonsterId !== monsterId) return null
 
     const timestamp = new Date().toISOString()
@@ -220,16 +155,13 @@ export class BattleService {
             defenderId === battle.challengerMonsterId ? battle.challengerStats : battle.opponentStats
 
           defenseBlock = Math.round(defenderStats.defense * battle.activeDefense.action.modifier)
-
           delete battle.activeDefense
         }
 
         damage = Math.round(
           action.modifier * (isChallenger ? battle.challengerStats.strength : battle.opponentStats.strength),
         )
-
         const finalDamage = Math.max(0, damage - defenseBlock)
-
         addStamina = 5
 
         if (isChallenger) {
@@ -261,7 +193,6 @@ export class BattleService {
             energyCost: action.energyCost ?? 0,
           },
         }
-
         addStamina = 10
         if (isChallenger) {
           battle.challengerMonsterStamina = Math.max(
@@ -274,15 +205,14 @@ export class BattleService {
             battle.opponentMonsterStamina - (action.energyCost ?? 0) + addStamina,
           )
         }
-
         break
 
       case gameDb.datatypes.ActionStatusEnum.PASS:
         addStamina = 20
         if (isChallenger) {
-          battle.challengerMonsterStamina = battle.challengerMonsterStamina + addStamina
+          battle.challengerMonsterStamina += addStamina
         } else {
-          battle.opponentMonsterStamina = battle.opponentMonsterStamina + addStamina
+          battle.opponentMonsterStamina += addStamina
         }
         break
 
@@ -319,31 +249,19 @@ export class BattleService {
       timestamp,
     }
 
-    const logs = battleRaw.logs ? (JSON.parse(battleRaw.logs) as gameDb.datatypes.BattleLog[]) : []
-    logs.push(logEntry)
+    battle.logs = battle.logs ?? []
+    battle.logs.push(logEntry)
     battle.lastActionLog = { monsterId: monsterId, actionName: action.name, damage: damage, stamina: addStamina }
-
-    const redisUpdatePayload = {
-      challengerMonsterHp: battle.challengerMonsterHp.toString(),
-      opponentMonsterHp: battle.opponentMonsterHp.toString(),
-      challengerMonsterStamina: battle.challengerMonsterStamina.toString(),
-      opponentMonsterStamina: battle.opponentMonsterStamina.toString(),
-      currentTurnMonsterId: battle.currentTurnMonsterId,
-      turnStartTime: battle.turnStartTime.toString(),
-      turnTimeLimit: battle.turnTimeLimit.toString(),
-      lastActionLog: JSON.stringify(battle.lastActionLog),
-      activeDefense: battle.activeDefense ? JSON.stringify(battle.activeDefense) : '',
-      logs: JSON.stringify(logs),
-      ...(winnerMonsterId ? { winnerMonsterId: winnerMonsterId } : {}),
-    }
 
     if (winnerMonsterId && loserMonsterId) {
       battle.winnerMonsterId = winnerMonsterId
 
+      const manager = gameDb.AppDataSource.manager
+
       await gameDb.Entities.MonsterBattles.update(battleId, {
         status: gameDb.datatypes.BattleStatusEnum.FINISHED,
         winnerMonsterId: winnerMonsterId,
-        log: logs,
+        log: battle.logs,
       })
 
       updateExpMonster(winnerMonsterId, loserMonsterId).catch((error) => {
@@ -362,10 +280,10 @@ export class BattleService {
         challengerFinalSp: battle.challengerMonsterStamina,
         opponentFinalSp: battle.opponentMonsterStamina,
         finishedAt: new Date().toISOString(),
-        logCount: logs.length,
+        logCount: battle.logs.length,
       })
 
-      logs.forEach((log, index) => {
+      battle.logs.forEach((log, index) => {
         logBattle.info('battle-turn', {
           battleId,
           turn: index + 1,
@@ -373,7 +291,34 @@ export class BattleService {
         })
       })
 
-      Promise.all([updateEnergy(battle.challengerUserId, -125), updateEnergy(battle.opponentUserId, -125)])
+      const foodRepo = gameDb.AppDataSource.getRepository(gameDb.Entities.Food)
+      const foods = await foodRepo.find()
+      if (!foods.length) {
+        logger.error('No food found in database')
+      } else {
+        const food = foods[Math.floor(Math.random() * foods.length)]
+
+        const challengerUser = await manager.findOne(gameDb.Entities.User, { where: { id: battle.challengerUserId } })
+        const opponentUser = await manager.findOne(gameDb.Entities.User, { where: { id: battle.opponentUserId } })
+
+        if (challengerUser && opponentUser) {
+          await Promise.all([updateEnergy(challengerUser, manager, -125), updateEnergy(opponentUser, manager, -125)])
+
+          const challengerGetFood = Math.floor(Math.random() * 2) + 1
+          const opponentGetFood = Math.floor(Math.random() * 2) + 1
+
+          await Promise.all([
+            updateFood(challengerUser, manager, food.id, challengerGetFood),
+            updateFood(opponentUser, manager, food.id, opponentGetFood),
+          ])
+
+          battle.challengerGetFood = challengerGetFood
+          battle.opponentGetFood = opponentGetFood
+        } else {
+          if (!challengerUser) logger.error('Challenger user not found')
+          if (!opponentUser) logger.error('Opponent user not found')
+        }
+      }
 
       if (battle.chatId) {
         fetchRequest({
@@ -384,12 +329,9 @@ export class BattleService {
       }
     }
 
-    await this.redisClient.hset(key, redisUpdatePayload)
+    await this.redisClient.set(key, JSON.stringify(battle))
     await this.redisClient.expire(key, 1800)
 
-    return {
-      ...battle,
-      logs,
-    }
+    return battle
   }
 }
