@@ -15,7 +15,7 @@ import { updateFood } from 'src/functions/ update-food'
 export class BattleService {
   private server: Server
 
-  constructor(@Inject('REDIS_CLIENT') private readonly redisClient: Redis) {}
+  constructor(@Inject('REDIS_CLIENT') readonly redisClient: Redis) {}
 
   setServer(server: Server) {
     this.server = server
@@ -48,7 +48,7 @@ export class BattleService {
       if (!battleStr) return null
     }
 
-    let battle: BattleRedis = JSON.parse(battleStr)
+    const battle: BattleRedis = JSON.parse(battleStr)
 
     const isChallenger = battle.challengerMonsterId === monsterId
     const isOpponent = battle.opponentMonsterId === monsterId
@@ -122,10 +122,10 @@ export class BattleService {
     monsterId: string,
   ): Promise<BattleRedis | null> {
     const key = `battle:${battleId}`
-    let battleStr = await this.redisClient.get(key)
+    const battleStr = await this.redisClient.get(key)
     if (!battleStr) return null
 
-    let battle: BattleRedis = JSON.parse(battleStr)
+    const battle: BattleRedis = JSON.parse(battleStr)
     if (battle.currentTurnMonsterId !== monsterId) return null
 
     const timestamp = new Date().toISOString()

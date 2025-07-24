@@ -36,9 +36,14 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
   }
 
   handleConnection(client: Socket) {
-    const isValid = authenticateWebSocketClient(client, this.jwtService, this.jwtStrategy)
+    const isValid = authenticateWebSocketClient(
+      client,
+      this.jwtService,
+      this.jwtStrategy,
+      this.battleSerchService.redisClient,
+    )
     if (!isValid) client.disconnect()
-    logger.info(`Client onnected: ${client.id}`)
+    logger.info(`Client Connected: ${client.id}`)
   }
 
   handleDisconnect(client: Socket) {
@@ -53,6 +58,7 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
     const userId = client.data.user?.id
     if (!userId || !data.monsterId) {
       client.emit('registerMonster', { result: false })
+      logger.error("Register monster for battle fault, don't get user id")
       return
     }
 
@@ -74,6 +80,7 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
     const userId = client.data.user?.id
     if (!userId) {
       client.emit('opponents', { opponents: [], nextCursor: '0' })
+      logger.error("Get opponents fault, don't get user id")
       return
     }
 
@@ -89,11 +96,14 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
 
   @SubscribeMessage('requestDuelChallenge')
   async handleRequestDuelChallenge(@MessageBody() data: { fromMonsterId: string; toMonsterId: string }) {
-    const monsterOpponent = await this.battleSerchService.requestDuelChallenge(data.toMonsterId)
-    const monster = await this.battleSerchService.requestDuelChallenge(data.fromMonsterId)
+    const myMonster = await this.battleSerchService.requestDuelChallenge(data.fromMonsterId)
+    const opponentMonster = await this.battleSerchService.requestDuelChallenge(data.toMonsterId)
 
-    if (monsterOpponent?.socketId) {
-      this.server.to(monsterOpponent.socketId).emit('duelChallengeRequest', monster)
+    if (opponentMonster?.userId) {
+      const opponentSocketId = await this.battleSerchService.getSocketId(opponentMonster.userId)
+      if (opponentSocketId) {
+        this.server.to(opponentSocketId).emit('duelChallengeRequest', myMonster)
+      }
     }
   }
 
@@ -101,24 +111,39 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
   async handleRequestDuelChallengeAccepted(
     @MessageBody() data: { fromMonsterId: string; toMonsterId: string; duelAccepted: boolean },
   ) {
-    if (!data.duelAccepted) {
-      const monsterOpponent = await getMonsterById(this.battleSerchService.redisClient, data.fromMonsterId)
-      if (!monsterOpponent) return
-      this.server.to(monsterOpponent.socketId).emit('duelChallengeResponce', { result: false })
+    const { fromMonsterId, toMonsterId, duelAccepted } = data
+
+    if (!duelAccepted) {
+      const challengerMonster = await getMonsterById(this.battleSerchService.redisClient, fromMonsterId)
+      if (!challengerMonster) return
+
+      const challengerSocketId = await this.battleSerchService.getSocketId(challengerMonster.userId)
+      if (challengerSocketId) {
+        this.server.to(challengerSocketId).emit('duelChallengeResponce', { result: false })
+      }
       return
     }
 
     const battle = await createBattle({
       redisClient: this.battleSerchService.redisClient,
-      opponentMonsterId: data?.toMonsterId,
-      challengerMonsterId: data?.fromMonsterId,
+      opponentMonsterId: toMonsterId,
+      challengerMonsterId: fromMonsterId,
     })
 
-    if (battle.challengerSocketId) {
-      this.server.to(battle.challengerSocketId).emit('duelChallengeResponce', battle)
+    const challengerMonster = await getMonsterById(this.battleSerchService.redisClient, fromMonsterId)
+    const opponentMonster = await getMonsterById(this.battleSerchService.redisClient, toMonsterId)
+
+    const challengerSocketId = challengerMonster
+      ? await this.battleSerchService.getSocketId(challengerMonster.userId)
+      : null
+
+    const opponentSocketId = opponentMonster ? await this.battleSerchService.getSocketId(opponentMonster.userId) : null
+
+    if (challengerSocketId) {
+      this.server.to(challengerSocketId).emit('duelChallengeResponce', battle)
     }
-    if (battle.opponentSocketId) {
-      this.server.to(battle.opponentSocketId).emit('duelChallengeResponce', battle)
+    if (opponentSocketId) {
+      this.server.to(opponentSocketId).emit('duelChallengeResponce', battle)
     }
   }
 }

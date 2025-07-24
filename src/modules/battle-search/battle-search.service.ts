@@ -61,6 +61,10 @@ export class BattleSearchService {
     return true
   }
 
+  async getSocketId(userId: string): Promise<string | null> {
+    return await this.redisClient.hget(`user:${userId}`, 'socketId')
+  }
+
   async getAvailableOpponentsPaged(
     monsterId: string,
     currentUserId: string,
@@ -90,7 +94,6 @@ export class BattleSearchService {
             avatar: data.avatar,
           })
         }
-
         if (opponents.length >= limit) {
           return { opponents, nextCursor }
         }

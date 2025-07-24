@@ -13,6 +13,7 @@ import { JwtStrategy } from '../../functions/auth/jwt.strategy'
 import { JwtService } from '@nestjs/jwt'
 import { authenticateWebSocketClient } from '../../functions/ws/authenticate-client'
 import * as gameDb from 'game-db'
+import { logger } from '../../functions/logger'
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
@@ -29,7 +30,12 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
   }
 
   handleConnection(client: Socket) {
-    const isValid = authenticateWebSocketClient(client, this.jwtService, this.jwtStrategy)
+    const isValid = authenticateWebSocketClient(
+      client,
+      this.jwtService,
+      this.jwtStrategy,
+      this.battleService.redisClient,
+    )
     if (!isValid) client.disconnect()
   }
 
@@ -44,7 +50,10 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
   ) {
     const battle = await this.battleService.getBattle(data.battleId, data.monsterId, client.id)
 
-    if (!battle) return
+    if (!battle) {
+      logger.error(`Not found battle id ${data.battleId}`)
+      return
+    }
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
     this.server.to(battle.opponentSocketId).emit('responseBattle', battle)
@@ -57,7 +66,10 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
   ) {
     const battle = await this.battleService.startBattle(data.battleId, data.monsterId, client.id)
 
-    if (!battle) return
+    if (!battle) {
+      logger.error(`Not found battle id ${data.battleId}`)
+      return
+    }
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
     this.server.to(battle.opponentSocketId).emit('responseBattle', battle)
@@ -74,7 +86,10 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     },
   ) {
     const battle = await this.battleService.attack(data.battleId, data.actionId, data.actionType, data.monsterId)
-    if (!battle) return
+    if (!battle) {
+      logger.error(`Not found battle id ${data.battleId}`)
+      return
+    }
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
     this.server.to(battle.opponentSocketId).emit('responseBattle', battle)
