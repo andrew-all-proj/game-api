@@ -267,16 +267,22 @@ export async function createCustomSpriteSheet({
   }).save()
 }
 
-const globalCache = {
-  atlasJsonParsed: null, // SpriteAtlas | null
-  spriteSheetBuffer: null as Buffer | null, // Buffer | null
-  lastLoaded: null as Date | null, // Date | null
+interface GlobalCache {
+  atlasJsonParsed: SpriteAtlas | null
+  spriteSheetBuffer: Buffer | null
+  lastLoaded: Date | null
 }
 
-function loadAtlasJson(atlasJsonFile: string) {
+const globalCache: GlobalCache = {
+  atlasJsonParsed: null,
+  spriteSheetBuffer: null,
+  lastLoaded: null,
+}
+
+function loadAtlasJson(atlasJsonFile: string): SpriteAtlas {
   if (!globalCache.atlasJsonParsed) {
     const content = fs.readFileSync(atlasJsonFile, 'utf-8')
-    globalCache.atlasJsonParsed = JSON.parse(content)
+    globalCache.atlasJsonParsed = JSON.parse(content) as SpriteAtlas
     globalCache.lastLoaded = new Date()
   }
   if (!globalCache.atlasJsonParsed) {
@@ -285,7 +291,7 @@ function loadAtlasJson(atlasJsonFile: string) {
   return globalCache.atlasJsonParsed
 }
 
-function loadSpriteSheetBuffer(spriteSheetFile: string) {
+function loadSpriteSheetBuffer(spriteSheetFile: string): Buffer {
   if (!globalCache.spriteSheetBuffer) {
     globalCache.spriteSheetBuffer = fs.readFileSync(spriteSheetFile)
   }
@@ -295,7 +301,7 @@ function loadSpriteSheetBuffer(spriteSheetFile: string) {
   return globalCache.spriteSheetBuffer
 }
 
-export const createSpriteSheetMonster = async (selectedPartsKey, monsterId) => {
+export const createSpriteSheetMonster = async (selectedPartsKey: SelectedPartsKey, monsterId: string) => {
   const files = await gameDb.Entities.File.find({
     where: { contentType: gameDb.datatypes.ContentTypeEnum.MAIN_SPRITE_SHEET_MONSTERS },
   })

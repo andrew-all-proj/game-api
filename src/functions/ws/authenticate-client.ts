@@ -18,7 +18,7 @@ export async function authenticateWebSocketClient(
     if (!token) return false
 
     const decoded = jwtService.verify<JwtPayload>(token)
-    const payload = await jwtStrategy.validate(decoded)
+    const payload = jwtStrategy.validate(decoded)
 
     client.data.user = payload
 

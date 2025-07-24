@@ -15,6 +15,13 @@ import { logger } from '../../functions/logger'
 import { calculateAndSaveEnergy } from '../../functions/ calculate-and-save-energy'
 import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
 
+interface TelegramUser {
+  id: number | string
+  first_name?: string
+  last_name?: string
+  username?: string
+}
+
 @Injectable()
 export class UserService {
   constructor(private jwtService: JwtService) {}
@@ -30,10 +37,11 @@ export class UserService {
       }
 
       let tlgId = args.telegramId
-      let tlgUser: any = undefined
+      let tlgUser: TelegramUser | undefined = undefined
 
       if (!config.local) {
-        tlgUser = parse(args.initData).user
+        const parsed = parse(args.initData) as { user?: TelegramUser }
+        tlgUser = parsed.user
         if (tlgUser?.id === undefined) {
           logger.error('User not found in initData')
           throw new BadRequestException('User not found in initData')
@@ -98,10 +106,10 @@ export class UserService {
   }
 
   async findAll(args: UsersListArgs, info: GraphQLResolveInfo): Promise<UsersList> {
-    const { offset, limit, sortOrder = SortOrderEnum.DESC } = args || {}
+    const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
-    const where = buildQueryFilters(args)
+    const where = buildQueryFilters(filters)
     const [items, totalCount] = await gameDb.Entities.User.findAndCount({
       where: { ...where },
       order: {

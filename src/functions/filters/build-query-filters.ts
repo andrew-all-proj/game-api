@@ -1,6 +1,20 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment, @typescript-eslint/no-unsafe-argument */
 import { FindOptionsWhere, ILike, In, MoreThanOrEqual, LessThanOrEqual, Not } from 'typeorm'
 
-export const buildQueryFilters = <T>(args: any): FindOptionsWhere<T> => {
+type FilterPrimitive = string | number | boolean | undefined
+
+interface FilterValue {
+  eq?: FilterPrimitive
+  neq?: FilterPrimitive
+  like?: string
+  in?: FilterPrimitive[]
+  gte?: FilterPrimitive
+  lte?: FilterPrimitive
+}
+
+export type Filters = Record<string, FilterValue | FilterPrimitive>
+
+export const buildQueryFilters = <T>(args: Filters): FindOptionsWhere<T> => {
   const where: FindOptionsWhere<T> = {}
 
   for (const key in args) {
@@ -8,40 +22,39 @@ export const buildQueryFilters = <T>(args: any): FindOptionsWhere<T> => {
 
     const filter = args[key]
 
-    if (!filter) continue
+    if (!filter && filter !== 0 && filter !== false) continue // пропускать только null/undefined
 
     if (
       typeof filter === 'object' &&
-      (filter.eq !== undefined ||
-        filter.neq !== undefined ||
-        filter.like !== undefined ||
-        filter.in !== undefined ||
-        filter.gte !== undefined ||
-        filter.lte !== undefined)
+      filter !== null &&
+      ('eq' in filter || 'neq' in filter || 'like' in filter || 'in' in filter || 'gte' in filter || 'lte' in filter)
     ) {
-      if (filter.eq !== undefined) {
-        where[key] = filter.eq
+      const value = filter
+
+      if (value.eq !== undefined) {
+        where[key] = value.eq as any
       }
-      if (filter.neq !== undefined) {
-        where[key] = Not(filter.neq)
+      if (value.neq !== undefined) {
+        where[key] = Not(value.neq as any)
       }
-      if (filter.like !== undefined) {
-        where[key] = ILike(`%${filter.like}%`)
+      if (value.like !== undefined) {
+        where[key] = ILike(`%${value.like}%`)
       }
-      if (filter.in !== undefined) {
-        where[key] = In(filter.in)
+      if (value.in !== undefined) {
+        where[key] = In(value.in as any)
       }
-      if (filter.gte !== undefined || filter.lte !== undefined) {
-        where[key] = {}
-        if (filter.gte !== undefined) {
-          where[key] = { ...(where[key] as object), ...MoreThanOrEqual(filter.gte) }
+      if (value.gte !== undefined || value.lte !== undefined) {
+        let range: any = {}
+        if (value.gte !== undefined) {
+          range = { ...range, ...MoreThanOrEqual(value.gte) }
         }
-        if (filter.lte !== undefined) {
-          where[key] = { ...(where[key] as object), ...LessThanOrEqual(filter.lte) }
+        if (value.lte !== undefined) {
+          range = { ...range, ...LessThanOrEqual(value.lte) }
         }
+        where[key] = range
       }
     } else {
-      where[key] = filter
+      where[key] = filter as any
     }
   }
 

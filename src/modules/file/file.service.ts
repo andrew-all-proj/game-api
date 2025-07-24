@@ -13,10 +13,10 @@ export class FileService {
   constructor() {}
 
   async findAll(args: FilesListArgs, info: GraphQLResolveInfo): Promise<FilesList> {
-    const { offset, limit, sortOrder = SortOrderEnum.DESC } = args || {}
+    const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.File)
-    const where = buildQueryFilters<File>(args)
+    const where = buildQueryFilters<File>(filters)
     const [items, totalCount] = await gameDb.Entities.File.findAndCount({
       where: { ...where },
       order: {

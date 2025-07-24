@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import axios, { AxiosRequestConfig, Method, AxiosError } from 'axios'
 import { logger } from './logger'
 

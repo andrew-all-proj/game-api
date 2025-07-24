@@ -41,10 +41,10 @@ export class AdminUserService {
   }
 
   async findAll(args: AdminUsersListArgs, info: GraphQLResolveInfo): Promise<AdminUsersList> {
-    const { offset, limit, sortOrder } = args || {}
+    const { offset, limit, sortOrder, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.AdminUser)
-    const where = buildQueryFilters(args)
+    const where = buildQueryFilters(filters)
     const [items, totalCount] = await gameDb.Entities.AdminUser.findAndCount({
       where: { ...where },
       order: {

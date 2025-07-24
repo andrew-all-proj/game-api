@@ -48,7 +48,7 @@ export class BattleService {
       if (!battleStr) return null
     }
 
-    const battle: BattleRedis = JSON.parse(battleStr)
+    const battle: BattleRedis = JSON.parse(battleStr) as BattleRedis
 
     const isChallenger = battle.challengerMonsterId === monsterId
     const isOpponent = battle.opponentMonsterId === monsterId
@@ -72,7 +72,7 @@ export class BattleService {
     const battleRaw = await this.redisClient.get(`battle:${battleId}`)
     if (!battleRaw) return null
 
-    const battle: BattleRedis = JSON.parse(battleRaw)
+    const battle: BattleRedis = JSON.parse(battleRaw) as BattleRedis
 
     if (monsterId === battle.challengerMonsterId) {
       battle.challengerSocketId = socketId
@@ -125,7 +125,7 @@ export class BattleService {
     const battleStr = await this.redisClient.get(key)
     if (!battleStr) return null
 
-    const battle: BattleRedis = JSON.parse(battleStr)
+    const battle: BattleRedis = JSON.parse(battleStr) as BattleRedis
     if (battle.currentTurnMonsterId !== monsterId) return null
 
     const timestamp = new Date().toISOString()

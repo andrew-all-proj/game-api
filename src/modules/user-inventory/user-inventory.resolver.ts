@@ -1,4 +1,4 @@
-import { Resolver, Query, Mutation, Args, Context, Info, Parent } from '@nestjs/graphql'
+import { Resolver, Query, Mutation, Args, Context, Info } from '@nestjs/graphql'
 import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'

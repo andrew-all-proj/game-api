@@ -23,12 +23,12 @@ export class UserInventoryService {
     info: GraphQLResolveInfo,
     ctx: GraphQLContext,
   ): Promise<UserInventoriesList> {
-    const { offset, limit, sortOrder = SortOrderEnum.DESC } = args || {}
+    const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const userId = resolveUserIdByRole(ctx.req.user?.role, ctx, args?.userId?.eq)
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.UserInventory)
-    const where = buildQueryFilters(args)
+    const where = buildQueryFilters(filters)
     const [items, totalCount] = await gameDb.Entities.UserInventory.findAndCount({
       where: { ...where, userId: userId },
       order: {

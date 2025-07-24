@@ -29,8 +29,8 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     this.server = server
   }
 
-  handleConnection(client: Socket) {
-    const isValid = authenticateWebSocketClient(
+  async handleConnection(client: Socket) {
+    const isValid = await authenticateWebSocketClient(
       client,
       this.jwtService,
       this.jwtStrategy,

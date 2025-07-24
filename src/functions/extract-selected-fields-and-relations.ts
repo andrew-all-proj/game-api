@@ -1,4 +1,5 @@
 import { GraphQLResolveInfo, SelectionNode } from 'graphql'
+import { EntityMetadata } from 'typeorm/metadata/EntityMetadata'
 
 interface GraphQLField<T> {
   selectedFields: (keyof T)[]
@@ -7,7 +8,7 @@ interface GraphQLField<T> {
 
 export function extractSelectedFieldsAndRelations<T>(
   info: GraphQLResolveInfo,
-  rootEntity: { getRepository: () => any },
+  rootEntity: { getRepository: () => { metadata: EntityMetadata } },
 ): GraphQLField<T> {
   const selectedFields = new Set<keyof T>()
   const relations = new Set<string>()
@@ -18,6 +19,7 @@ export function extractSelectedFieldsAndRelations<T>(
 
   function traverse(selections: readonly SelectionNode[], path = '') {
     for (const selection of selections) {
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       if (selection.kind !== 'Field') continue
 
       const name = selection.name.value as keyof T

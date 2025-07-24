@@ -59,9 +59,17 @@ export class MonsterFeedService {
       })
 
       return { success: true }
-    } catch (err) {
+    } catch (err: unknown) {
       logger.error('Feed monster error', err)
-      throw new BadRequestException(err.message || 'Feed monster error')
+      let message = 'Feed monster error'
+      if (err instanceof Error) {
+        message = err.message
+      } else if (typeof err === 'object' && err && 'message' in err) {
+        message = String((err as { message: string }).message)
+      } else {
+        message = String(err)
+      }
+      throw new BadRequestException(message)
     }
   }
 }

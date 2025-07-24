@@ -11,13 +11,13 @@ export class UserInventoryCreateArgs {
 
   @Field({ nullable: true })
   @IsOptional()
-  @ValidateIf((o) => !o.mutagenId)
+  @ValidateIf((o: UserInventoryCreateArgs) => !o.mutagenId)
   @IsNotEmpty({ message: 'foodId is required if mutagenId is not provided' })
   foodId: string
 
   @Field({ nullable: true })
   @IsOptional()
-  @ValidateIf((o) => !o.foodId)
+  @ValidateIf((o: UserInventoryCreateArgs) => !o.foodId)
   @IsNotEmpty({ message: 'mutagenId is required if foodId is not provided' })
   mutagenId: string
 
