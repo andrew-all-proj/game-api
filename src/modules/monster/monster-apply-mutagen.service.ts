@@ -2,15 +2,15 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import * as gameDb from 'game-db'
 import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
 import { logger } from '../../functions/logger'
-import { MonsterFeedArgs } from './dto/monster-feed.args'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
+import { MonsterApplyMutagenArgs } from './dto/monster-apply-mutagen.args'
 
 @Injectable()
-export class MonsterFeedService {
+export class MonsterApplyMutagenService {
   constructor() {}
 
-  async feed(args: MonsterFeedArgs, ctx: GraphQLContext): Promise<CommonResponse> {
+  async apply(args: MonsterApplyMutagenArgs, ctx: GraphQLContext): Promise<CommonResponse> {
     const userId = resolveUserIdByRole(ctx.req.user?.role, ctx, null)
     if (!userId) {
       throw new BadRequestException('User id not found')
@@ -22,17 +22,17 @@ export class MonsterFeedService {
           where: {
             id: args.userInventoryId,
             userId: userId,
-            type: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
+            type: gameDb.datatypes.UserInventoryTypeEnum.MUTAGEN,
           },
-          relations: { food: true },
+          relations: { mutagen: true },
         })
 
         if (!userInventory) {
-          throw new BadRequestException('Food not found in user inventory')
+          throw new BadRequestException('Mutagen not found in user inventory')
         }
 
-        if (userInventory.quantity < args.quantity) {
-          throw new BadRequestException('Not enough food in inventory')
+        if (!userInventory.quantity || userInventory.quantity < 1) {
+          throw new BadRequestException('Not enough mutagen in inventory')
         }
 
         const monster = await manager.findOne(gameDb.Entities.Monster, {
@@ -43,25 +43,36 @@ export class MonsterFeedService {
           throw new BadRequestException('Monster not found')
         }
 
-        const currentSatiety = monster.satiety ?? 0
-        const addedSatiety = (userInventory.food.satietyBonus ?? 0) * args.quantity
+        const mutagen = userInventory.mutagen
 
-        if (currentSatiety >= 100) {
-          throw new BadRequestException('The monster is already full')
+        if (mutagen?.strength) {
+          monster.strength += mutagen.strength
         }
 
-        monster.satiety = Math.min(currentSatiety + addedSatiety, 100)
+        if (mutagen?.defense) {
+          monster.defense += mutagen.defense
+        }
+
+        if (mutagen?.evasion) {
+          monster.evasion += mutagen.evasion
+        }
 
         await manager.save(monster)
 
-        userInventory.quantity -= args.quantity
+        userInventory.quantity -= 1
+        if (userInventory.quantity <= 0) {
+          await manager.remove(userInventory)
+        } else {
+          await manager.save(userInventory)
+        }
+
         await manager.save(userInventory)
       })
 
       return { success: true }
     } catch (err: unknown) {
-      logger.error('Feed monster error', err)
-      let message = 'Feed monster error'
+      logger.error('Monster apply mutagen error', err)
+      let message = 'Monster apply mutagen error'
       if (err instanceof Error) {
         message = err.message
       } else if (typeof err === 'object' && err && 'message' in err) {

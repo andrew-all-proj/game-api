@@ -16,6 +16,15 @@ export class Mutagen {
   effectDescription?: string
 
   @Field({ nullable: true })
+  strength: number
+
+  @Field({ nullable: true })
+  defense: number
+
+  @Field({ nullable: true })
+  evasion: number
+
+  @Field({ nullable: true })
   iconFileId: string
 
   @Field(() => File, { nullable: true }) //TODO will make this is array in db
