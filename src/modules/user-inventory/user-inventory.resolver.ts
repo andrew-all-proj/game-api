@@ -10,8 +10,10 @@ import {
   UserInventoriesListArgs,
   UserInventoryArgs,
   UserInventoryCreateArgs,
+  UserInventoryDeleteArgs,
   UserInventoryUpdateArgs,
 } from './dto/user.args'
+import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 
 @Resolver(() => UserInventory)
 export class UserInventoryResolver {
@@ -67,5 +69,20 @@ export class UserInventoryResolver {
     @Info() info: GraphQLResolveInfo,
   ): Promise<UserInventory> {
     return this.userInventoryService.update(args, info)
+  }
+
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles(
+    gameDb.datatypes.UserRoleEnum.SUPER_ADMIN,
+    gameDb.datatypes.UserRoleEnum.ADMIN,
+    gameDb.datatypes.UserRoleEnum.USER,
+  )
+  @Mutation(() => CommonResponse)
+  UserInventoryDelete(
+    @Args() args: UserInventoryDeleteArgs,
+    @Context() ctx: GraphQLContext,
+    @Info() info: GraphQLResolveInfo,
+  ): Promise<CommonResponse> {
+    return this.userInventoryService.delete(args, info, ctx)
   }
 }

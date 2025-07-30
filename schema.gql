@@ -215,6 +215,7 @@ type Mutation {
   MonsterUpdate(id: String!, isSelected: Boolean, name: String, userId: String): Monster!
   UserCreate(avatarFileId: String, email: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String): User!
   UserInventoryCreate(foodId: String, mutagenId: String, quantity: Float, userId: String): UserInventory!
+  UserInventoryDelete(id: String!, quantity: Float, userId: String): CommonResponse!
   UserInventoryUpdate(id: String!, quantity: Float): UserInventory!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): CommonResponse!
