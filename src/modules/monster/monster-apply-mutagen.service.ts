@@ -2,19 +2,24 @@ import { BadRequestException, Injectable } from '@nestjs/common'
 import * as gameDb from 'game-db'
 import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
 import { logger } from '../../functions/logger'
-import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
 import { MonsterApplyMutagenArgs } from './dto/monster-apply-mutagen.args'
+import { MonsterApplyMutagen } from './entities/monster'
 
+function getRandomInRange(min: number, max: number): number {
+  return Math.floor(Math.random() * (max - min + 1)) + min
+}
 @Injectable()
 export class MonsterApplyMutagenService {
   constructor() {}
 
-  async apply(args: MonsterApplyMutagenArgs, ctx: GraphQLContext): Promise<CommonResponse> {
+  async applyMutagen(args: MonsterApplyMutagenArgs, ctx: GraphQLContext): Promise<MonsterApplyMutagen> {
     const userId = resolveUserIdByRole(ctx.req.user?.role, ctx, null)
     if (!userId) {
       throw new BadRequestException('User id not found')
     }
+
+    let result: MonsterApplyMutagen = {}
 
     try {
       await gameDb.AppDataSource.transaction(async (manager) => {
@@ -45,16 +50,30 @@ export class MonsterApplyMutagenService {
 
         const mutagen = userInventory.mutagen
 
+        result.monsterId = monster.id
+
         if (mutagen?.strength) {
-          monster.strength += mutagen.strength
+          const oldStrength = monster.strength
+          monster.strength += getRandomInRange(-mutagen.strength, mutagen.strength)
+          if (monster.strength < 0) monster.strength = 0 // <= вот тут!
+          result.oldStrength = oldStrength
+          result.strength = monster.strength
         }
 
         if (mutagen?.defense) {
-          monster.defense += mutagen.defense
+          const oldDefense = monster.defense
+          monster.defense += getRandomInRange(-mutagen.defense, mutagen.defense)
+          if (monster.defense < 0) monster.defense = 0
+          result.oldDefense = oldDefense
+          result.defense = monster.defense
         }
 
         if (mutagen?.evasion) {
-          monster.evasion += mutagen.evasion
+          const oldEvasion = monster.evasion
+          monster.evasion += getRandomInRange(-mutagen.evasion, mutagen.evasion)
+          if (monster.evasion < 0) monster.evasion = 0
+          result.oldEvasion = oldEvasion
+          result.evasion = monster.evasion
         }
 
         await manager.save(monster)
@@ -65,11 +84,13 @@ export class MonsterApplyMutagenService {
         } else {
           await manager.save(userInventory)
         }
-
-        await manager.save(userInventory)
       })
 
-      return { success: true }
+      if (!result.monsterId) {
+        throw new BadRequestException('Unknown error during transaction')
+      }
+
+      return result
     } catch (err: unknown) {
       logger.error('Monster apply mutagen error', err)
       let message = 'Monster apply mutagen error'

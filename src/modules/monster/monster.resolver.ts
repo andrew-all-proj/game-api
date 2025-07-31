@@ -1,6 +1,6 @@
 import { Resolver, Query, Mutation, Args, Context, Info, ResolveField, Parent } from '@nestjs/graphql'
 import { MonsterService } from './monster.service'
-import { Monster, MonstersList } from './entities/monster'
+import { Monster, MonsterApplyMutagen, MonstersList } from './entities/monster'
 import {
   MonsterArgs,
   MonsterCreateArgs,
@@ -96,9 +96,12 @@ export class MonsterResolver {
 
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles(gameDb.datatypes.UserRoleEnum.USER)
-  @Mutation(() => CommonResponse)
-  MonsterApplyMutagen(@Args() args: MonsterApplyMutagenArgs, @Context() ctx: GraphQLContext): Promise<CommonResponse> {
-    return this.monsterApplyMutagenService.apply(args, ctx)
+  @Mutation(() => MonsterApplyMutagen)
+  MonsterApplyMutagen(
+    @Args() args: MonsterApplyMutagenArgs,
+    @Context() ctx: GraphQLContext,
+  ): Promise<MonsterApplyMutagen> {
+    return this.monsterApplyMutagenService.applyMutagen(args, ctx)
   }
 
   @ResolveField(() => Number, { nullable: true })
