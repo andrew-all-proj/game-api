@@ -71,3 +71,27 @@ export class MonstersList {
   @Field({ nullable: true })
   totalCount: number
 }
+
+@ObjectType()
+export class MonsterApplyMutagen {
+  @Field({ nullable: true })
+  monsterId?: string
+
+  @Field({ nullable: true })
+  strength?: number
+
+  @Field({ nullable: true })
+  defense?: number
+
+  @Field({ nullable: true })
+  evasion?: number
+
+  @Field({ nullable: true })
+  oldStrength?: number
+
+  @Field({ nullable: true })
+  oldDefense?: number
+
+  @Field({ nullable: true })
+  oldEvasion?: number
+}

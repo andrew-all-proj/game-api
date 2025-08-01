@@ -7,6 +7,7 @@ export const monsterStartingStats = {
     evasion: 5,
     experiencePoints: 0,
     level: 1,
+    satiety: 50,
   },
   monsterAttacks: [
     {

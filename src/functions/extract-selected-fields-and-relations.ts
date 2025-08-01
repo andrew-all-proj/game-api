@@ -14,31 +14,36 @@ export function extractSelectedFieldsAndRelations<T>(
   const relations = new Set<string>()
 
   const metadata = rootEntity.getRepository().metadata
-  const relationNames = metadata.relations.map((r) => r.propertyName)
-  const columnNames = metadata.columns.map((c) => c.propertyName)
 
-  function traverse(selections: readonly SelectionNode[], path = '') {
+  function traverse(selections: readonly SelectionNode[], path = '', metadataArg: EntityMetadata = metadata) {
+    const relationNames = metadataArg.relations.map((r) => r.propertyName)
+    const columnNames = metadataArg.columns.map((c) => c.propertyName)
+
     for (const selection of selections) {
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-enum-comparison
       if (selection.kind !== 'Field') continue
 
       const name = selection.name.value as keyof T
 
       if (['items', 'totalCount', '__typename'].includes(name as string) && !path) {
         if (selection.selectionSet) {
-          traverse(selection.selectionSet.selections, path)
+          traverse(selection.selectionSet.selections, path, metadataArg)
         }
         continue
       }
 
+      const currentPath = path ? `${path}.${String(name)}` : (name as string)
+
       if (selection.selectionSet) {
-        const root = path || (name as string)
         if (relationNames.includes(name as string)) {
-          relations.add(root)
+          relations.add(currentPath)
+          const nextRelation = metadataArg.relations.find((r) => r.propertyName === name)
+          if (nextRelation && nextRelation.inverseEntityMetadata) {
+            traverse(selection.selectionSet.selections, currentPath, nextRelation.inverseEntityMetadata)
+          }
         }
       } else {
         if (columnNames.includes(name as string)) {
-          selectedFields.add(name)
+          selectedFields.add(currentPath as keyof T)
         }
       }
     }

@@ -10,9 +10,11 @@ import {
   UserInventoriesListArgs,
   UserInventoryArgs,
   UserInventoryCreateArgs,
+  UserInventoryDeleteArgs,
   UserInventoryUpdateArgs,
 } from './dto/user.args'
 import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
+import { CommonResponse } from 'src/datatypes/entities/CommonResponse'
 
 @Injectable()
 export class UserInventoryService {
@@ -106,5 +108,33 @@ export class UserInventoryService {
     await gameDb.Entities.UserInventory.save(userInventory)
 
     return userInventory
+  }
+
+  async delete(args: UserInventoryDeleteArgs, info: GraphQLResolveInfo, ctx: GraphQLContext): Promise<CommonResponse> {
+    const userId = resolveUserIdByRole(ctx.req.user?.role, ctx, args?.userId)
+
+    const userInventory = await gameDb.Entities.UserInventory.findOne({
+      where: { id: args.id, userId },
+    })
+
+    if (!userInventory) {
+      throw new BadRequestException('UserInventory not found')
+    }
+
+    const qtyToRemove = args.quantity ?? 1
+
+    if (qtyToRemove < 1) {
+      throw new BadRequestException('Quantity to remove must be at least 1')
+    }
+
+    if (userInventory.quantity > qtyToRemove) {
+      userInventory.quantity -= qtyToRemove
+      await userInventory.save()
+      return { success: true }
+    }
+
+    // if quantity >=0, to remove
+    await userInventory.remove()
+    return { success: true }
   }
 }

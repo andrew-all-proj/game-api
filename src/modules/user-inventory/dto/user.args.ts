@@ -63,6 +63,22 @@ export class UserInventoryUpdateArgs {
 }
 
 @ArgsType()
+export class UserInventoryDeleteArgs {
+  @IsUUID()
+  @Field()
+  id: string
+
+  @IsUUID()
+  @IsOptional()
+  @Field({ nullable: true })
+  userId: string
+
+  @Field({ nullable: true })
+  @IsOptional()
+  quantity: number
+}
+
+@ArgsType()
 export class UserRemoveArgs {
   @IsUUID()
   @Field()

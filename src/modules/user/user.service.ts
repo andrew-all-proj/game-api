@@ -68,6 +68,19 @@ export class UserService {
           energy: 1000,
         }).save()
 
+        const foods = await gameDb.Entities.Food.find()
+        if (!foods.length) {
+          logger.error('No food found in database')
+        } else {
+          const food = foods[Math.floor(Math.random() * foods.length)]
+          await gameDb.Entities.UserInventory.create({
+            userId: user.id,
+            foodId: food.id,
+            quantity: 4,
+            type: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
+          }).save()
+        }
+
         logger.info(`Created new user: ${user.id}`)
       }
     } catch (err) {

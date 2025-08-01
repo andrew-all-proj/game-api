@@ -4,7 +4,7 @@ import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
 import { logger } from '../../functions/logger'
 import { MonsterFeedArgs } from './dto/monster-feed.args'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
-import { resolveUserIdByRole } from 'src/functions/resolve-user-id-by-role'
+import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
 
 @Injectable()
 export class MonsterFeedService {
