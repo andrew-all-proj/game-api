@@ -10,6 +10,7 @@ import { BattleRedis } from '../../datatypes/common/BattleRedis'
 import { updateExpMonster } from '../../functions/updateExpMonster'
 import { updateEnergy } from '../../functions/update-energy'
 import { updateFood } from 'src/functions/ update-food'
+import { battleExpRewards } from '../../config/monster-starting-stats'
 
 @Injectable()
 export class BattleService {
@@ -264,9 +265,11 @@ export class BattleService {
         log: battle.logs,
       })
 
-      updateExpMonster(winnerMonsterId, loserMonsterId).catch((error) => {
-        logger.error(`Failed to update experience for winner ${winnerMonsterId} or loser ${loserMonsterId}:`, error)
-      })
+      updateExpMonster(winnerMonsterId, loserMonsterId, battleExpRewards.winExp, battleExpRewards.loseExp).catch(
+        (error) => {
+          logger.error(`Failed to update experience for winner ${winnerMonsterId} or loser ${loserMonsterId}:`, error)
+        },
+      )
 
       logBattle.info('battle', {
         battleId,
@@ -304,16 +307,29 @@ export class BattleService {
         if (challengerUser && opponentUser) {
           await Promise.all([updateEnergy(challengerUser, manager, -125), updateEnergy(opponentUser, manager, -125)])
 
-          const challengerGetFood = Math.floor(Math.random() * 2) + 1
-          const opponentGetFood = Math.floor(Math.random() * 2) + 1
+          const foodQuantity = Math.floor(Math.random() * 2) + 1
 
-          await Promise.all([
-            updateFood(challengerUser, manager, food.id, challengerGetFood),
-            updateFood(opponentUser, manager, food.id, opponentGetFood),
-          ])
+          if (winnerMonsterId === battle.challengerMonsterId) {
+            await updateFood(challengerUser, manager, food.id, foodQuantity)
 
-          battle.challengerGetFood = challengerGetFood
-          battle.opponentGetFood = opponentGetFood
+            battle.challengerGetReward = {
+              exp: battleExpRewards.winExp,
+              food: { id: food.id, name: food.name, quantity: foodQuantity },
+            }
+            battle.opponentGetReward = {
+              exp: battleExpRewards.loseExp,
+            }
+          } else {
+            await updateFood(opponentUser, manager, food.id, foodQuantity)
+
+            battle.challengerGetReward = {
+              exp: battleExpRewards.loseExp,
+            }
+            battle.opponentGetReward = {
+              exp: battleExpRewards.winExp,
+              food: { id: food.id, name: food.name, quantity: foodQuantity },
+            }
+          }
         } else {
           if (!challengerUser) logger.error('Challenger user not found')
           if (!opponentUser) logger.error('Opponent user not found')
