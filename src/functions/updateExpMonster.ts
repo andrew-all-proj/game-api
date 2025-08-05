@@ -2,10 +2,12 @@ import * as gameDb from 'game-db'
 import { monsterLevels } from '../config/monster-levels'
 import { logger } from './logger'
 
-const winExp = 30
-const loseExp = 12
-
-export const updateExpMonster = async (winnerMonsterId: string, loserMonsterId: string): Promise<void> => {
+export const updateExpMonster = async (
+  winnerMonsterId: string,
+  loserMonsterId: string,
+  winExp: number,
+  loseExp: number,
+): Promise<void> => {
   try {
     await Promise.all([
       updateSingleMonsterExp(winnerMonsterId, winExp),

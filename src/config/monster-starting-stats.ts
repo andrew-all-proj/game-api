@@ -40,3 +40,8 @@ export const monsterStartingStats = {
 }
 
 export const costToCreateMonster = 200
+
+export const battleExpRewards = {
+  winExp: 30,
+  loseExp: 15,
+}
