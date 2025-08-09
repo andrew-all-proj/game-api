@@ -3,6 +3,7 @@ import { User } from '../../user/entities/user'
 import { Mutagen } from '../../mutagen/entities/mutagen'
 import * as gameDb from 'game-db'
 import { Food } from '../../food/entities/food'
+import { Skill } from '../../skill/entities/skill'
 
 @ObjectType()
 export class UserInventory {
@@ -28,10 +29,16 @@ export class UserInventory {
   mutagen: Mutagen
 
   @Field({ nullable: true })
+  skillId: string
+
+  @Field(() => Skill, { nullable: true })
+  skill: Skill
+
+  @Field({ nullable: true })
   quantity: number
 
   @Field(() => gameDb.datatypes.UserInventoryTypeEnum, { nullable: true })
-  type: gameDb.datatypes.UserInventoryTypeEnum
+  userInventoryType: gameDb.datatypes.UserInventoryTypeEnum
 
   @Field({ nullable: true })
   updatedAt?: Date

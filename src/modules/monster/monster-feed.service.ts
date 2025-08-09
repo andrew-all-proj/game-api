@@ -22,7 +22,7 @@ export class MonsterFeedService {
           where: {
             id: args.userInventoryId,
             userId: userId,
-            type: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
+            userInventoryType: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
           },
           relations: { food: true },
         })

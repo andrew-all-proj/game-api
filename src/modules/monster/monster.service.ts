@@ -72,17 +72,22 @@ export class MonsterService {
 
         await manager.save(monster)
 
-        const attacks = monsterStartingStats.monsterAttacks.map((attack) =>
+        const baseSkills = await gameDb.Entities.Skill.find({ where: { isBase: true } })
+
+        const baseAttaks = baseSkills.filter((skill) => skill.type === gameDb.datatypes.SkillType.ATTACK)
+        const baseDefense = baseSkills.filter((skill) => skill.type === gameDb.datatypes.SkillType.DEFENSE)
+
+        const attacks = baseAttaks.map((skill) =>
           manager.create(gameDb.Entities.MonsterAttacks, {
-            ...attack,
+            skillId: skill.id,
             monsterId: monster.id,
           }),
         )
         await manager.save(attacks)
 
-        const defenses = monsterStartingStats.monsterDefenses.map((defense) =>
+        const defenses = baseDefense.map((skill) =>
           manager.create(gameDb.Entities.MonsterDefenses, {
-            ...defense,
+            skillId: skill.id,
             monsterId: monster.id,
           }),
         )

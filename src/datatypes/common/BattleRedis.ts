@@ -7,7 +7,7 @@ export interface MonsterStats {
   defense: number
   evasion: number
 }
-
+//TODO DELETE
 export interface MonsterAttack {
   id: number
   name: string
@@ -72,10 +72,10 @@ export interface BattleRedis {
   challengerStats: MonsterStats
   opponentStats: MonsterStats
 
-  challengerAttacks: MonsterAttack[]
-  challengerDefenses: MonsterDefense[]
-  opponentAttacks: MonsterAttack[]
-  opponentDefenses: MonsterDefense[]
+  challengerAttacks: gameDb.Entities.Skill[]
+  challengerDefenses: gameDb.Entities.Skill[]
+  opponentAttacks: gameDb.Entities.Skill[]
+  opponentDefenses: gameDb.Entities.Skill[]
 
   activeDefense?: ActiveDefense
 

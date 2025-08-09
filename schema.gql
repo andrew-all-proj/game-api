@@ -121,6 +121,11 @@ type Food {
   updatedAt: DateTime
 }
 
+"""
+The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
+"""
+scalar JSON
+
 type Monster {
   createdAt: DateTime
   defense: Float
@@ -154,13 +159,11 @@ type MonsterApplyMutagen {
 }
 
 type MonsterAttacks {
-  cooldown: Float
   createdAt: DateTime
-  energyCost: Float
   id: Float
-  modifier: Float
   monsterId: String
-  name: String
+  skill: Skill
+  skillId: String
   updatedAt: DateTime
 }
 
@@ -181,13 +184,11 @@ type MonsterBattlesList {
 }
 
 type MonsterDefenses {
-  cooldown: Float
   createdAt: DateTime
-  energyCost: Float
   id: Float
-  modifier: Float
   monsterId: String
-  name: String
+  skill: Skill
+  skillId: String
   updatedAt: DateTime
 }
 
@@ -218,6 +219,7 @@ type Mutation {
   FileRemove(id: String!): CommonResponse!
   FileUpdate(contentType: ContentTypeEnum, description: String, fileType: FileTypeEnum, id: String!, name: String, url: String): File!
   MonsterApplyMutagen(monsterId: String!, userInventoryId: String!): MonsterApplyMutagen!
+  MonsterApplySkill(monsterId: String!, replacedSkillId: String, userInventoryId: String!): CommonResponse!
   MonsterBattleUpdate(id: String!, status: BattleStatusEnum): MonsterBattles!
   MonsterCreate(fileId: String!, name: String, selectedPartsKey: SelectedPartsKey!, userId: String): Monster!
   MonsterFeed(monsterId: String!, quantity: Float, userInventoryId: String!): CommonResponse!
@@ -260,6 +262,31 @@ input SelectedPartsKey {
   headKey: String!
   leftArmKey: String!
   rightArmKey: String
+}
+
+type Skill {
+  cooldown: Float
+  createdAt: DateTime
+  defense: Float
+  description: String
+  effects: JSON
+  energyCost: Float
+  evasion: Float
+  iconFile: File
+  iconFileId: String
+  id: String
+  isBase: Boolean
+  name: String
+  rarity: SkillRarity
+  strength: Float
+  updatedAt: DateTime
+}
+
+enum SkillRarity {
+  BASIC
+  COMMON
+  EPIC
+  RARE
 }
 
 enum SortOrderEnum {
@@ -305,15 +332,18 @@ type UserInventory {
   mutagen: Mutagen
   mutagenId: String
   quantity: Float
-  type: UserInventoryTypeEnum
+  skill: Skill
+  skillId: String
   updatedAt: DateTime
   user: User
   userId: String
+  userInventoryType: UserInventoryTypeEnum
 }
 
 enum UserInventoryTypeEnum {
   FOOD
   MUTAGEN
+  SKILL
 }
 
 input UserInventoryTypeFilter {

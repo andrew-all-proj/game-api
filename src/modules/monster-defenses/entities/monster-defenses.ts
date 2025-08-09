@@ -1,4 +1,5 @@
 import { ObjectType, Field } from '@nestjs/graphql'
+import { Skill } from '../../skill/entities/skill'
 
 @ObjectType()
 export class MonsterDefenses {
@@ -9,16 +10,10 @@ export class MonsterDefenses {
   monsterId: string
 
   @Field({ nullable: true })
-  name: string
+  skillId: string
 
-  @Field({ nullable: true })
-  modifier: number
-
-  @Field({ nullable: true })
-  energyCost: number
-
-  @Field({ nullable: true })
-  cooldown: number
+  @Field(() => Skill, { nullable: true })
+  skill: Skill
 
   @Field({ nullable: true })
   updatedAt?: Date

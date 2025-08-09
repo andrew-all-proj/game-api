@@ -80,7 +80,7 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     @MessageBody()
     data: {
       battleId: string
-      actionId: number
+      actionId: string
       actionType: gameDb.datatypes.ActionStatusEnum
       monsterId: string
     },

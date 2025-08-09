@@ -19,6 +19,8 @@ import { MonsterFeedService } from './monster-feed.service'
 import { MonsterFeedArgs } from './dto/monster-feed.args'
 import { MonsterApplyMutagenService } from './monster-apply-mutagen.service'
 import { MonsterApplyMutagenArgs } from './dto/monster-apply-mutagen.args'
+import { MonsterApplySkillService } from './monster-apply-skill.service'
+import { MonsterApplySkillArgs } from './dto/monster-apply-skill.args '
 
 @Resolver(() => Monster)
 export class MonsterResolver {
@@ -26,6 +28,7 @@ export class MonsterResolver {
     private readonly monsterService: MonsterService,
     private readonly monsterFeedService: MonsterFeedService,
     private readonly monsterApplyMutagenService: MonsterApplyMutagenService,
+    private readonly monsterApplySkillService: MonsterApplySkillService,
   ) {}
 
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -102,6 +105,13 @@ export class MonsterResolver {
     @Context() ctx: GraphQLContext,
   ): Promise<MonsterApplyMutagen> {
     return this.monsterApplyMutagenService.applyMutagen(args, ctx)
+  }
+
+  @UseGuards(GqlAuthGuard, RolesGuard)
+  @Roles(gameDb.datatypes.UserRoleEnum.USER)
+  @Mutation(() => CommonResponse)
+  MonsterApplySkill(@Args() args: MonsterApplySkillArgs, @Context() ctx: GraphQLContext): Promise<CommonResponse> {
+    return this.monsterApplySkillService.applySkill(args, ctx)
   }
 
   @ResolveField(() => Number, { nullable: true })

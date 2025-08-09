@@ -11,7 +11,7 @@ export async function updateFood(
     where: {
       userId: user.id,
       foodId: foodId,
-      type: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
+      userInventoryType: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
     },
   })
 
@@ -20,7 +20,7 @@ export async function updateFood(
       userId: user.id,
       foodId: foodId,
       quantity: quantity,
-      type: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
+      userInventoryType: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
     })
   } else {
     userInventory.quantity += quantity

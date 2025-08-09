@@ -2,7 +2,7 @@ import { Field, ArgsType } from '@nestjs/graphql'
 import { IsOptional, IsUUID } from 'class-validator'
 
 @ArgsType()
-export class MonsterApplyMutagenArgs {
+export class MonsterApplySkillArgs {
   @IsUUID()
   @Field()
   monsterId: string
@@ -10,4 +10,9 @@ export class MonsterApplyMutagenArgs {
   @IsUUID()
   @Field()
   userInventoryId: string
+
+  @IsUUID()
+  @IsOptional()
+  @Field({ nullable: true })
+  replacedSkillId?: string
 }

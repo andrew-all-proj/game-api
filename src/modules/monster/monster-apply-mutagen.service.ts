@@ -3,17 +3,18 @@ import * as gameDb from 'game-db'
 import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
 import { logger } from '../../functions/logger'
 import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
-import { MonsterApplyMutagenArgs } from './dto/monster-apply-mutagen.args'
 import { MonsterApplyMutagen } from './entities/monster'
+import { MonsterApplySkillArgs } from './dto/monster-apply-skill.args '
 
 function getRandomInRange(min: number, max: number): number {
   return Math.floor(Math.random() * (max - min + 1)) + min
 }
+
 @Injectable()
 export class MonsterApplyMutagenService {
   constructor() {}
 
-  async applyMutagen(args: MonsterApplyMutagenArgs, ctx: GraphQLContext): Promise<MonsterApplyMutagen> {
+  async applyMutagen(args: MonsterApplySkillArgs, ctx: GraphQLContext): Promise<MonsterApplyMutagen> {
     const userId = resolveUserIdByRole(ctx.req.user?.role, ctx, null)
     if (!userId) {
       throw new BadRequestException('User id not found')
@@ -27,7 +28,7 @@ export class MonsterApplyMutagenService {
           where: {
             id: args.userInventoryId,
             userId: userId,
-            type: gameDb.datatypes.UserInventoryTypeEnum.MUTAGEN,
+            userInventoryType: gameDb.datatypes.UserInventoryTypeEnum.MUTAGEN,
           },
           relations: { mutagen: true },
         })
@@ -55,7 +56,7 @@ export class MonsterApplyMutagenService {
         if (mutagen?.strength) {
           const oldStrength = monster.strength
           monster.strength += getRandomInRange(-mutagen.strength, mutagen.strength)
-          if (monster.strength < 0) monster.strength = 0 // <= вот тут!
+          if (monster.strength < 0) monster.strength = 0
           result.oldStrength = oldStrength
           result.strength = monster.strength
         }
