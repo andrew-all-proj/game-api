@@ -29,3 +29,7 @@ registerEnumType(gameDb.datatypes.UserInventoryTypeEnum, {
 registerEnumType(gameDb.datatypes.SkillRarity, {
   name: 'SkillRarity',
 })
+
+registerEnumType(gameDb.datatypes.SkillType, {
+  name: 'SkillType',
+})

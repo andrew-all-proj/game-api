@@ -35,6 +35,9 @@ export class Skill {
   @Field(() => gameDb.datatypes.SkillRarity, { nullable: true })
   rarity: gameDb.datatypes.SkillRarity
 
+  @Field(() => gameDb.datatypes.SkillType, { nullable: true })
+  type: gameDb.datatypes.SkillType
+
   @Field(() => GraphQLJSON, { nullable: true })
   effects: gameDb.datatypes.SkillBonusEffect
 

@@ -279,6 +279,7 @@ type Skill {
   name: String
   rarity: SkillRarity
   strength: Float
+  type: SkillType
   updatedAt: DateTime
 }
 
@@ -287,6 +288,11 @@ enum SkillRarity {
   COMMON
   EPIC
   RARE
+}
+
+enum SkillType {
+  ATTACK
+  DEFENSE
 }
 
 enum SortOrderEnum {
