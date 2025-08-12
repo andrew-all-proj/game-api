@@ -96,13 +96,13 @@ export class BattleSearch implements OnGatewayConnection, OnGatewayDisconnect, O
 
   @SubscribeMessage('requestDuelChallenge')
   async handleRequestDuelChallenge(@MessageBody() data: { fromMonsterId: string; toMonsterId: string }) {
-    const myMonster = await this.battleSerchService.requestDuelChallenge(data.fromMonsterId)
+    const challengeMonster = await this.battleSerchService.requestDuelChallenge(data.fromMonsterId)
     const opponentMonster = await this.battleSerchService.requestDuelChallenge(data.toMonsterId)
 
     if (opponentMonster?.userId) {
       const opponentSocketId = await this.battleSerchService.getSocketId(opponentMonster.userId)
       if (opponentSocketId) {
-        this.server.to(opponentSocketId).emit('duelChallengeRequest', myMonster)
+        this.server.to(opponentSocketId).emit('duelChallengeRequest', challengeMonster)
       }
     }
   }

@@ -62,11 +62,11 @@ export class UserInventoryService {
   async create(args: UserInventoryCreateArgs, info: GraphQLResolveInfo): Promise<UserInventory> {
     const { userId, foodId, mutagenId, quantity } = args
 
-    let type: gameDb.datatypes.UserInventoryTypeEnum
+    let userInventoryType: gameDb.datatypes.UserInventoryTypeEnum
     if (foodId && !mutagenId) {
-      type = gameDb.datatypes.UserInventoryTypeEnum.FOOD
+      userInventoryType = gameDb.datatypes.UserInventoryTypeEnum.FOOD
     } else if (mutagenId && !foodId) {
-      type = gameDb.datatypes.UserInventoryTypeEnum.MUTAGEN
+      userInventoryType = gameDb.datatypes.UserInventoryTypeEnum.MUTAGEN
     } else {
       throw new BadRequestException('You must provide either foodId or mutagenId, but not both.')
     }
@@ -76,7 +76,7 @@ export class UserInventoryService {
       foodId,
       mutagenId,
       quantity,
-      type,
+      userInventoryType,
     })
     await entity.save()
 

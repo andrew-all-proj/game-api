@@ -4509,9 +4509,9 @@ function-bind@^1.1.2:
   resolved "https://registry.yarnpkg.com/function-bind/-/function-bind-1.1.2.tgz#2c02d864d97f3ea6c8830c464cbd11ab6eab7a1c"
   integrity sha512-7XHNxH7qX9xG5mIwxkhumTox/MIRNcOgDrxWsMt2pAr23WHp6MrRlN7FBSFpCpr+oVO0F744iUgR82nJMfG2SA==
 
-"game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.4":
+"game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.8":
   version "0.0.2"
-  resolved "git+ssh://git@github.com/andrew-all-proj/game-db.git#508a0805b018c5e013302cc2329b87f588b0236f"
+  resolved "git+ssh://git@github.com/andrew-all-proj/game-db.git#95cf499aedc9a6e24231acba739832bef2c7628b"
   dependencies:
     dotenv "^16.5.0"
     pg "^8.14.1"
@@ -4693,6 +4693,11 @@ graphql-tag@2.12.6:
   integrity sha512-FdSNcu2QQcWnM2VNvSCCDCVS5PpPqpzgFT8+GXzqJuoDd0CBncxCY278u4mhRO7tMgo2JjgJA5aZ+nWSQ/Z+xg==
   dependencies:
     tslib "^2.1.0"
+
+graphql-type-json@^0.3.2:
+  version "0.3.2"
+  resolved "https://registry.yarnpkg.com/graphql-type-json/-/graphql-type-json-0.3.2.tgz#f53a851dbfe07bd1c8157d24150064baab41e115"
+  integrity sha512-J+vjof74oMlCWXSvt0DOf2APEdZOCdubEvGDUAlqH//VBYcOYsGgRW7Xzorr44LvkjiuvecWc8fChxuZZbChtg==
 
 graphql-ws@6.0.4:
   version "6.0.4"

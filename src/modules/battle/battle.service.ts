@@ -9,8 +9,9 @@ import { logBattle, logger } from '../../functions/logger'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
 import { updateExpMonster } from '../../functions/updateExpMonster'
 import { updateEnergy } from '../../functions/update-energy'
-import { updateFood } from 'src/functions/ update-food'
+import { updateFood } from '../../functions/update-food'
 import { battleExpRewards } from '../../config/monster-starting-stats'
+import { Skill } from 'game-db/dist/entity'
 
 @Injectable()
 export class BattleService {
@@ -94,23 +95,34 @@ export class BattleService {
     battle: BattleRedis,
     type: gameDb.datatypes.ActionStatusEnum,
     monsterId: string,
-    actionId: number,
-  ) {
+    actionId: string | null,
+  ): Partial<Skill> | null {
     const isChallenger = monsterId === battle.challengerMonsterId
     if (type === gameDb.datatypes.ActionStatusEnum.PASS) {
-      return { name: 'Пропуск', modifier: 0, energyCost: 0, cooldown: 0 }
+      return {
+        id: '',
+        name: 'Пропуск',
+        energyCost: 0,
+        cooldown: 0,
+        strength: 0,
+        defense: 0,
+      }
     }
 
     if (type === gameDb.datatypes.ActionStatusEnum.ATTACK) {
-      return isChallenger
-        ? battle.challengerAttacks?.find((a) => a.id === actionId)
-        : battle.opponentAttacks?.find((a) => a.id === actionId)
+      return (
+        (isChallenger
+          ? battle.challengerAttacks?.find((a) => a.id === actionId)
+          : battle.opponentAttacks?.find((a) => a.id === actionId)) ?? null
+      )
     }
 
     if (type === gameDb.datatypes.ActionStatusEnum.DEFENSE) {
-      return isChallenger
-        ? battle.challengerDefenses?.find((d) => d.id === actionId)
-        : battle.opponentDefenses?.find((d) => d.id === actionId)
+      return (
+        (isChallenger
+          ? battle.challengerDefenses?.find((d) => d.id === actionId)
+          : battle.opponentDefenses?.find((d) => d.id === actionId)) ?? null
+      )
     }
 
     return null
@@ -118,7 +130,7 @@ export class BattleService {
 
   async attack(
     battleId: string,
-    actionId: number,
+    actionId: string | null,
     actionType: gameDb.datatypes.ActionStatusEnum,
     monsterId: string,
   ): Promise<BattleRedis | null> {
@@ -132,10 +144,8 @@ export class BattleService {
     const timestamp = new Date().toISOString()
     const isChallenger = monsterId === battle.challengerMonsterId
     const defenderId = isChallenger ? battle.opponentMonsterId : battle.challengerMonsterId
-
     const action = this.getActionFromBattle(battle, actionType, monsterId, actionId)
     if (!action) return null
-
     let damage = 0
     let defenseBlock = 0
 
@@ -144,7 +154,7 @@ export class BattleService {
 
     if (stamina < cost) {
       actionType = gameDb.datatypes.ActionStatusEnum.PASS
-      actionId = -1
+      actionId = null
     }
 
     let addStamina = 0
@@ -160,10 +170,10 @@ export class BattleService {
         }
 
         damage = Math.round(
-          action.modifier * (isChallenger ? battle.challengerStats.strength : battle.opponentStats.strength),
+          (action.strength || 0) * (isChallenger ? battle.challengerStats.strength : battle.opponentStats.strength),
         )
         const finalDamage = Math.max(0, damage - defenseBlock)
-        addStamina = 5
+        addStamina = 1
 
         if (isChallenger) {
           battle.challengerMonsterStamina = Math.max(
@@ -188,13 +198,13 @@ export class BattleService {
         battle.activeDefense = {
           monsterId,
           action: {
-            name: action.name,
-            modifier: action.modifier,
+            name: action.name || '',
+            modifier: action?.strength ?? 0,
             cooldown: action.cooldown ?? 0,
             energyCost: action.energyCost ?? 0,
           },
         }
-        addStamina = 10
+        addStamina = 2
         if (isChallenger) {
           battle.challengerMonsterStamina = Math.max(
             0,
@@ -209,7 +219,7 @@ export class BattleService {
         break
 
       case gameDb.datatypes.ActionStatusEnum.PASS:
-        addStamina = 20
+        addStamina = 3
         if (isChallenger) {
           battle.challengerMonsterStamina += addStamina
         } else {
@@ -239,8 +249,8 @@ export class BattleService {
       from: monsterId,
       to: defenderId,
       action: actionType,
-      nameAction: action.name,
-      modifier: action.modifier,
+      nameAction: action.name || '',
+      modifier: action.strength,
       damage: damage,
       block: 0,
       effect: undefined,
@@ -252,7 +262,12 @@ export class BattleService {
 
     battle.logs = battle.logs ?? []
     battle.logs.push(logEntry)
-    battle.lastActionLog = { monsterId: monsterId, actionName: action.name, damage: damage, stamina: addStamina }
+    battle.lastActionLog = {
+      monsterId: monsterId,
+      actionName: action.name || 'не известно',
+      damage: damage,
+      stamina: addStamina,
+    }
 
     if (winnerMonsterId && loserMonsterId) {
       battle.winnerMonsterId = winnerMonsterId

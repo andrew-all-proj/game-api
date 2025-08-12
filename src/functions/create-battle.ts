@@ -51,8 +51,6 @@ export async function createBattleToRedis({
 
   const monsters = [opponentMonster, challengerMonster]
 
-  console.log(opponentMonster?.satiety, challengerMonster?.satiety)
-
   if ((opponentMonster?.satiety ?? 0) < SATIETY_COST || (challengerMonster?.satiety ?? 0) < SATIETY_COST) {
     logger.info('Monster is hungry')
     return false
@@ -99,10 +97,10 @@ export async function createBattleToRedis({
       evasion: opponentMonster.evasion,
     },
 
-    challengerAttacks: challengerMonster.monsterAttacks ?? [],
-    challengerDefenses: challengerMonster.monsterDefenses ?? [],
-    opponentAttacks: opponentMonster.monsterAttacks ?? [],
-    opponentDefenses: opponentMonster.monsterDefenses ?? [],
+    challengerAttacks: challengerMonster.monsterAttacks.map((a) => a.skill),
+    challengerDefenses: challengerMonster.monsterDefenses.map((d) => d.skill),
+    opponentAttacks: opponentMonster.monsterAttacks.map((a) => a.skill),
+    opponentDefenses: opponentMonster.monsterDefenses.map((d) => d.skill),
 
     currentTurnMonsterId: challengerMonsterId,
     turnStartTime: Date.now(),

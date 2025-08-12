@@ -77,7 +77,7 @@ export class UserService {
             userId: user.id,
             foodId: food.id,
             quantity: 4,
-            type: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
+            userInventoryType: gameDb.datatypes.UserInventoryTypeEnum.FOOD,
           }).save()
         }
 
