@@ -76,19 +76,25 @@ export class MonsterApplySkillService {
           if (monster.monsterAttacks.length >= 3 && !args.replacedSkillId) {
             throw new BadRequestException('Monster already has 3 attacks, please replace one')
           }
+
           if (args.replacedSkillId) {
             const existingAttack = monster.monsterAttacks.find((attack) => attack.skillId === args.replacedSkillId)
             if (!existingAttack) {
               throw new BadRequestException('Replaced skill not found in monster attacks')
             }
+
+            if (existingAttack.skillId === skill.id) {
+              return { success: true }
+            }
+
             const result = await manager.update(
               gameDb.Entities.MonsterAttacks,
-              { monsterId: monster.id, skillId: args.replacedSkillId },
+              { id: existingAttack.id },
               { skillId: skill.id },
             )
 
-            if (result.affected === 0) {
-              throw new BadRequestException('Replaced skill not found in monster attacks')
+            if (result.affected !== 1) {
+              throw new BadRequestException('Expected to update 1 row in monster attacks')
             }
 
             await returnSkillToInventory(manager, userId, args.replacedSkillId)
@@ -105,18 +111,25 @@ export class MonsterApplySkillService {
           if (monster.monsterDefenses.length >= 3 && !args.replacedSkillId) {
             throw new BadRequestException('Monster already has 3 defenses, please replace one')
           }
+
           if (args.replacedSkillId) {
             const existingDefense = monster.monsterDefenses.find((defense) => defense.skillId === args.replacedSkillId)
             if (!existingDefense) {
               throw new BadRequestException('Replaced skill not found in monster defenses')
             }
+
+            if (existingDefense.skillId === skill.id) {
+              return { success: true }
+            }
+
             const result = await manager.update(
               gameDb.Entities.MonsterDefenses,
-              { monsterId: monster.id, skillId: args.replacedSkillId },
+              { id: existingDefense.id },
               { skillId: skill.id },
             )
-            if (result.affected === 0) {
-              throw new BadRequestException('Replaced skill not found in monster defenses')
+
+            if (result.affected !== 1) {
+              throw new BadRequestException('Expected to update 1 row in monster defenses')
             }
 
             await returnSkillToInventory(manager, userId, args.replacedSkillId)
