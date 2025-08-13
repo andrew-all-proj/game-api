@@ -20,7 +20,7 @@ export class MonsterApplyMutagenService {
       throw new BadRequestException('User id not found')
     }
 
-    let result: MonsterApplyMutagen = {}
+    const result: MonsterApplyMutagen = {}
 
     try {
       await gameDb.AppDataSource.transaction(async (manager) => {
