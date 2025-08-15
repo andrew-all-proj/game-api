@@ -80,6 +80,16 @@ A date-time string at UTC, such as 2019-12-03T09:54:33Z, compliant with the date
 """
 scalar DateTime
 
+type Energy {
+  createdAt: DateTime
+  id: String
+  isActive: Boolean
+  name: String
+  priceMinor: Float
+  quantity: Float
+  updatedAt: DateTime
+}
+
 type ErrorResponse {
   error: String
   message: String
@@ -225,6 +235,7 @@ type Mutation {
   MonsterFeed(monsterId: String!, quantity: Float, userInventoryId: String!): CommonResponse!
   MonsterRemove(id: String!, userId: String): CommonResponse!
   MonsterUpdate(id: String!, isSelected: Boolean, name: String, userId: String): Monster!
+  UserApplyEnergy(userId: String!, userInventoryId: String!): CommonResponse!
   UserCreate(avatarFileId: String, email: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String): User!
   UserInventoryCreate(foodId: String, mutagenId: String, quantity: Float, userId: String): UserInventory!
   UserInventoryDelete(id: String!, quantity: Float, userId: String): CommonResponse!
@@ -332,6 +343,8 @@ type UserInventoriesList {
 
 type UserInventory {
   createdAt: DateTime
+  energy: Energy
+  energyId: String
   food: Food
   foodId: String
   id: String
@@ -347,6 +360,7 @@ type UserInventory {
 }
 
 enum UserInventoryTypeEnum {
+  ENERGY
   FOOD
   MUTAGEN
   SKILL

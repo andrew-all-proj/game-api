@@ -4,6 +4,7 @@ import { Mutagen } from '../../mutagen/entities/mutagen'
 import * as gameDb from 'game-db'
 import { Food } from '../../food/entities/food'
 import { Skill } from '../../skill/entities/skill'
+import { Energy } from '../../energy/entities/energy'
 
 @ObjectType()
 export class UserInventory {
@@ -33,6 +34,12 @@ export class UserInventory {
 
   @Field(() => Skill, { nullable: true })
   skill: Skill
+
+  @Field({ nullable: true })
+  energyId: string
+
+  @Field(() => Energy, { nullable: true })
+  energy: Energy
 
   @Field({ nullable: true })
   quantity: number
