@@ -51,8 +51,9 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     const battle = await this.battleService.getBattle(data.battleId, data.monsterId, client.id)
 
     if (!battle) {
-      logger.error(`Not found battle id ${data.battleId}`)
-      return
+      await this.battleService.rejectBattle(data.battleId)
+      logger.error(`[getBattle] Not found battle id ${data.battleId}`)
+      return { rejected: true }
     }
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
@@ -67,8 +68,9 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     const battle = await this.battleService.startBattle(data.battleId, data.monsterId, client.id)
 
     if (!battle) {
-      logger.error(`Not found battle id ${data.battleId}`)
-      return
+      await this.battleService.rejectBattle(data.battleId)
+      logger.error(`[startBattle] Not found battle id ${data.battleId}`)
+      return { rejected: true }
     }
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
@@ -87,8 +89,9 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
   ) {
     const battle = await this.battleService.attack(data.battleId, data.actionId, data.actionType, data.monsterId)
     if (!battle) {
-      logger.error(`Not found battle id ${data.battleId}`)
-      return
+      await this.battleService.rejectBattle(data.battleId)
+      logger.error(`[attack] Not found battle id ${data.battleId}`)
+      return { rejected: true }
     }
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)

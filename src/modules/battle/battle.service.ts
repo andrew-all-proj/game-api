@@ -12,7 +12,7 @@ import { updateEnergy } from '../../functions/update-energy'
 import { updateFood } from '../../functions/update-food'
 import { battleExpRewards } from '../../config/monster-starting-stats'
 import { Skill } from 'game-db/dist/entity'
-import { DEFAULT_GRACE_MS, DEFAULT_TURN_MS } from '../../config/battle'
+import { DEFAULT_GRACE_MS, DEFAULT_TURN_MS, SATIETY_COST } from '../../config/battle'
 
 function ensureTurnTiming(battle: BattleRedis) {
   const now = Date.now()
@@ -81,7 +81,7 @@ export class BattleService {
       battle.opponentReady = '0'
     }
 
-    await this.redisClient.set(key, JSON.stringify(battle))
+    await this.redisClient.set(key, JSON.stringify(battle), 'KEEPTTL')
 
     return battle
   }
@@ -102,9 +102,18 @@ export class BattleService {
       return null
     }
 
-    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle))
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'KEEPTTL')
 
     return battle
+  }
+
+  async rejectBattle(battleId: string) {
+    gameDb.Entities.MonsterBattles.update(
+      { id: battleId },
+      {
+        status: gameDb.datatypes.BattleStatusEnum.REJECTED,
+      },
+    )
   }
 
   private getActionFromBattle(
@@ -342,6 +351,13 @@ export class BattleService {
         })
       })
 
+      await manager
+        .createQueryBuilder()
+        .update(gameDb.Entities.Monster)
+        .set({ satiety: () => `GREATEST(satiety - ${SATIETY_COST}, 0)` })
+        .where('id IN (:...ids)', { ids: [battle.challengerMonsterId, battle.opponentMonsterId] })
+        .execute()
+
       const foodRepo = gameDb.AppDataSource.getRepository(gameDb.Entities.Food)
       const foods = await foodRepo.find()
       if (!foods.length) {
@@ -393,8 +409,7 @@ export class BattleService {
       }
     }
 
-    await this.redisClient.set(key, JSON.stringify(battle))
-    await this.redisClient.expire(key, 1800)
+    await this.redisClient.set(key, JSON.stringify(battle), 'KEEPTTL')
 
     return battle
   }

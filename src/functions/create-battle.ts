@@ -5,7 +5,7 @@ import { getMonsterById } from './redis/get-monster-by-id'
 import { BattleRedis } from '../datatypes/common/BattleRedis'
 import { logger } from './logger'
 import { v4 as uuidv4 } from 'uuid'
-import { DEFAULT_TURN_MS, DEFAULT_GRACE_MS } from '../config/battle'
+import { DEFAULT_TURN_MS, DEFAULT_GRACE_MS, SATIETY_COST } from '../config/battle'
 
 interface CreateBattleArgs {
   redisClient: Redis
@@ -28,8 +28,6 @@ interface CreateBattleToRedisArgs {
   chatId?: string
 }
 
-const SATIETY_COST = 25
-
 export async function createBattleToRedis({
   redisClient,
   newBattle,
@@ -50,26 +48,29 @@ export async function createBattleToRedis({
     }),
   ])
 
-  const monsters = [opponentMonster, challengerMonster]
-
   if ((opponentMonster?.satiety ?? 0) < SATIETY_COST || (challengerMonster?.satiety ?? 0) < SATIETY_COST) {
     logger.info('Monster is hungry')
+    gameDb.Entities.MonsterBattles.update(
+      { id: battleId },
+      {
+        status: gameDb.datatypes.BattleStatusEnum.REJECTED,
+      },
+    )
     return false
   }
 
-  for (const monster of monsters) {
-    if (!monster) continue
-    if ((monster.satiety ?? 0) > SATIETY_COST) {
-      monster.satiety = (monster.satiety ?? 0) - SATIETY_COST
-      await gameDb.Entities.Monster.update(monster.id, { satiety: monster.satiety })
-    }
-  }
-
   if (!opponentMonster?.healthPoints || !challengerMonster?.healthPoints) {
+    gameDb.Entities.MonsterBattles.update(
+      { id: battleId },
+      {
+        status: gameDb.datatypes.BattleStatusEnum.REJECTED,
+      },
+    )
     return false
   }
 
   const battle: BattleRedis = {
+    rejected: false,
     battleId,
     opponentMonsterId,
     challengerMonsterId,
@@ -122,8 +123,7 @@ export async function createBattleToRedis({
     chatId: chatId ?? '',
   }
 
-  await redisClient.set(`battle:${battleId}`, JSON.stringify(battle))
-  await redisClient.expire(`battle:${battleId}`, 3600)
+  await redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 1800)
 
   return true
 }
