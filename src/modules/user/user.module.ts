@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { UserService } from './user.service'
 import { UserResolver } from './user.resolver'
 import { JwtModule } from '@nestjs/jwt'
+import { UserApplyEnergyService } from './user-apply-energy.service'
 
 @Module({
   imports: [
@@ -10,7 +11,7 @@ import { JwtModule } from '@nestjs/jwt'
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  providers: [UserResolver, UserService],
+  providers: [UserResolver, UserService, UserApplyEnergyService],
   exports: [JwtModule],
 })
 export class UserModule {}

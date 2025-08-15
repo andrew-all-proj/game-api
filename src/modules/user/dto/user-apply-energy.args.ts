@@ -2,10 +2,10 @@ import { Field, ArgsType } from '@nestjs/graphql'
 import { IsUUID } from 'class-validator'
 
 @ArgsType()
-export class MonsterApplyMutagenArgs {
+export class UserApplyEnergyArgs {
   @IsUUID()
   @Field()
-  monsterId: string
+  userId: string
 
   @IsUUID()
   @Field()
