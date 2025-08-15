@@ -12,6 +12,22 @@ import { updateEnergy } from '../../functions/update-energy'
 import { updateFood } from '../../functions/update-food'
 import { battleExpRewards } from '../../config/monster-starting-stats'
 import { Skill } from 'game-db/dist/entity'
+import { DEFAULT_GRACE_MS, DEFAULT_TURN_MS } from '../../config/battle'
+
+function ensureTurnTiming(battle: BattleRedis) {
+  const now = Date.now()
+  const limit = battle.turnTimeLimit ?? DEFAULT_TURN_MS
+  if (!battle.graceMs) battle.graceMs = DEFAULT_GRACE_MS
+
+  if (!battle.turnEndsAtMs) {
+    if (battle.turnStartTime) {
+      battle.turnEndsAtMs = battle.turnStartTime + limit
+    } else {
+      battle.turnStartTime = now
+      battle.turnEndsAtMs = now + limit
+    }
+  }
+}
 
 @Injectable()
 export class BattleService {
@@ -141,6 +157,17 @@ export class BattleService {
     const battle: BattleRedis = JSON.parse(battleStr) as BattleRedis
     if (battle.currentTurnMonsterId !== monsterId) return null
 
+    ensureTurnTiming(battle)
+
+    const nowMs = Date.now()
+    const endsAt = battle.turnEndsAtMs!
+    const grace = battle.graceMs ?? DEFAULT_GRACE_MS
+
+    if (nowMs > endsAt + grace) {
+      actionType = gameDb.datatypes.ActionStatusEnum.PASS
+      actionId = null
+    }
+
     const timestamp = new Date().toISOString()
     const isChallenger = monsterId === battle.challengerMonsterId
     const defenderId = isChallenger ? battle.opponentMonsterId : battle.challengerMonsterId
@@ -242,8 +269,14 @@ export class BattleService {
     }
 
     battle.currentTurnMonsterId = defenderId
-    battle.turnStartTime = Date.now()
-    battle.turnTimeLimit = 30000
+    battle.turnNumber = (battle.turnNumber ?? 0) + 1
+
+    const nextDuration = battle.turnTimeLimit ?? DEFAULT_TURN_MS
+    const t0 = Date.now()
+    battle.turnStartTime = t0
+    battle.turnEndsAtMs = t0 + nextDuration
+    battle.graceMs = battle.graceMs ?? DEFAULT_GRACE_MS
+    battle.serverNowMs = Date.now()
 
     const logEntry: gameDb.datatypes.BattleLog = {
       from: monsterId,

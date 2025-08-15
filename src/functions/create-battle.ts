@@ -5,6 +5,7 @@ import { getMonsterById } from './redis/get-monster-by-id'
 import { BattleRedis } from '../datatypes/common/BattleRedis'
 import { logger } from './logger'
 import { v4 as uuidv4 } from 'uuid'
+import { DEFAULT_TURN_MS, DEFAULT_GRACE_MS } from '../config/battle'
 
 interface CreateBattleArgs {
   redisClient: Redis
@@ -104,7 +105,11 @@ export async function createBattleToRedis({
 
     currentTurnMonsterId: challengerMonsterId,
     turnStartTime: Date.now(),
-    turnTimeLimit: 30000,
+    turnTimeLimit: DEFAULT_TURN_MS,
+    turnNumber: 0,
+    turnEndsAtMs: 0,
+    graceMs: DEFAULT_GRACE_MS,
+    serverNowMs: Date.now(),
     lastActionLog: undefined,
     logs: [],
 

@@ -82,6 +82,10 @@ export interface BattleRedis {
   currentTurnMonsterId: string
   turnStartTime: number
   turnTimeLimit: number
+  turnNumber: number
+  turnEndsAtMs: number
+  graceMs: number
+  serverNowMs: number
   lastActionLog?: LastActionLog
   logs?: gameDb.datatypes.BattleLog[]
 
