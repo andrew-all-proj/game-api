@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt'
 import { authenticateWebSocketClient } from '../../functions/ws/authenticate-client'
 import * as gameDb from 'game-db'
 import { logger } from '../../functions/logger'
+import { BattleAttackService } from './battle-attack.service'
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
@@ -21,6 +22,7 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
 
   constructor(
     private readonly battleService: BattleService,
+    private readonly battleAttackService: BattleAttackService,
     private readonly jwtService: JwtService,
     private readonly jwtStrategy: JwtStrategy,
   ) {}
@@ -82,12 +84,17 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     @MessageBody()
     data: {
       battleId: string
-      actionId: string
-      actionType: gameDb.datatypes.ActionStatusEnum
       monsterId: string
+      attackId?: string | null // ← новое
+      defenseId?: string | null // ← новое
     },
   ) {
-    const battle = await this.battleService.attack(data.battleId, data.actionId, data.actionType, data.monsterId)
+    const battle = await this.battleAttackService.attack(
+      data.battleId,
+      data.attackId ?? null,
+      data.defenseId ?? null,
+      data.monsterId,
+    )
     if (!battle) {
       await this.battleService.rejectBattle(data.battleId)
       logger.error(`[attack] Not found battle id ${data.battleId}`)

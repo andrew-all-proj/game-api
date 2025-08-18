@@ -28,9 +28,10 @@ interface ActiveDefense {
   monsterId: string
   action: {
     name: string
-    modifier: number
+    defense: number
     cooldown: number
     energyCost: number
+    evasion: number
   }
 }
 
