@@ -4,35 +4,6 @@ import { Server } from 'socket.io'
 import { createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
-import { Skill } from '../skill/entities/skill'
-
-function applyDefense(
-  attackDamage: number,
-  defenderStats: { defense: number; evasion: number },
-  defenseSkill: Partial<Skill> | null,
-): { damageAfter: number; block: number; evaded: boolean } {
-  if (!defenseSkill) {
-    // защиты нет → получаем весь урон
-    return { damageAfter: attackDamage, block: 0, evaded: false }
-  }
-
-  let block = 0
-  let evaded = false
-
-  // Проверка уклонения
-  const evasionPower = (defenseSkill.evasion ?? 0) * defenderStats.evasion
-  const evasionChance = Math.min(0.95, evasionPower / 100) // ограничим до 95%
-  if (Math.random() < evasionChance) {
-    return { damageAfter: 0, block: 0, evaded: true }
-  }
-
-  // Проверка блока
-  const defensePower = (defenseSkill.defense ?? 0) * defenderStats.defense
-  block = Math.round(defensePower)
-  const damageAfter = Math.max(0, attackDamage - block)
-
-  return { damageAfter, block, evaded }
-}
 
 @Injectable()
 export class BattleService {
@@ -80,10 +51,10 @@ export class BattleService {
 
     if (isChallenger) {
       battle.challengerSocketId = socketId
-      battle.challengerReady = '0'
+      battle.challengerReady = false
     } else {
       battle.opponentSocketId = socketId
-      battle.opponentReady = '0'
+      battle.opponentReady = false
     }
 
     await this.redisClient.set(key, JSON.stringify(battle), 'KEEPTTL')
@@ -99,10 +70,10 @@ export class BattleService {
 
     if (monsterId === battle.challengerMonsterId) {
       battle.challengerSocketId = socketId
-      battle.challengerReady = '1'
+      battle.challengerReady = true
     } else if (monsterId === battle.opponentMonsterId) {
       battle.opponentSocketId = socketId
-      battle.opponentReady = '1'
+      battle.opponentReady = true
     } else {
       return null
     }

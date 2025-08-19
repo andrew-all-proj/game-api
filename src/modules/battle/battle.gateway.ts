@@ -12,7 +12,6 @@ import { BattleService } from './battle.service'
 import { JwtStrategy } from '../../functions/auth/jwt.strategy'
 import { JwtService } from '@nestjs/jwt'
 import { authenticateWebSocketClient } from '../../functions/ws/authenticate-client'
-import * as gameDb from 'game-db'
 import { logger } from '../../functions/logger'
 import { BattleAttackService } from './battle-attack.service'
 
@@ -55,7 +54,7 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     if (!battle) {
       await this.battleService.rejectBattle(data.battleId)
       logger.error(`[getBattle] Not found battle id ${data.battleId}`)
-      return { rejected: true }
+      return this.server.to(client.id).emit('responseBattle', { rejected: true })
     }
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
@@ -72,7 +71,7 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     if (!battle) {
       await this.battleService.rejectBattle(data.battleId)
       logger.error(`[startBattle] Not found battle id ${data.battleId}`)
-      return { rejected: true }
+      return this.server.to(client.id).emit('responseBattle', { rejected: true })
     }
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
@@ -81,12 +80,13 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
 
   @SubscribeMessage('attack')
   async handleAttack(
+    @ConnectedSocket() client: Socket,
     @MessageBody()
     data: {
       battleId: string
       monsterId: string
-      attackId?: string | null // ← новое
-      defenseId?: string | null // ← новое
+      attackId?: string | null
+      defenseId?: string | null
     },
   ) {
     const battle = await this.battleAttackService.attack(
@@ -98,7 +98,7 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     if (!battle) {
       await this.battleService.rejectBattle(data.battleId)
       logger.error(`[attack] Not found battle id ${data.battleId}`)
-      return { rejected: true }
+      return this.server.to(client.id).emit('responseBattle', { rejected: true })
     }
 
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)

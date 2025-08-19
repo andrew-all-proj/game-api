@@ -93,8 +93,8 @@ export interface BattleRedis {
 
   challengerSocketId: string
   opponentSocketId: string
-  challengerReady: '1' | '0'
-  opponentReady: '1' | '0'
+  challengerReady: boolean
+  opponentReady: boolean
   winnerMonsterId?: string
   chatId?: string | null
 

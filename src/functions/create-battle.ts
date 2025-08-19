@@ -117,8 +117,8 @@ export async function createBattleToRedis({
     challengerSocketId: challengerSocketId ?? '',
     opponentSocketId: opponentSocketId ?? '',
 
-    challengerReady: '0',
-    opponentReady: '0',
+    challengerReady: false,
+    opponentReady: false,
 
     chatId: chatId ?? '',
   }
