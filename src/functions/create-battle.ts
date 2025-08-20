@@ -130,12 +130,12 @@ export async function createBattleToRedis({
   return true
 }
 
-const checkEnergy = async (monsterId: string): Promise<boolean> => {
+const checkEnergyAndSatiety = async (monsterId: string): Promise<boolean> => {
   const monster = await gameDb.Entities.Monster.findOne({ where: { id: monsterId }, relations: ['user'] })
   if (!monster) {
     return false
   }
-  if (monster.user.energy >= 125) {
+  if (monster.user.energy >= 125 && monster.satiety >= SATIETY_COST) {
     return true
   }
 
@@ -181,8 +181,8 @@ export async function createBattle({
     }
   }
 
-  const opponentMonsterUserEnergy = await checkEnergy(opponentMonsterId)
-  const challengerMonsterUserEnergy = await checkEnergy(challengerMonsterId)
+  const opponentMonsterUserEnergy = await checkEnergyAndSatiety(opponentMonsterId)
+  const challengerMonsterUserEnergy = await checkEnergyAndSatiety(challengerMonsterId)
   if (!opponentMonsterUserEnergy || !challengerMonsterUserEnergy) {
     return {
       result: false,
