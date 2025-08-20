@@ -111,6 +111,8 @@ export async function createBattleToRedis({
     turnEndsAtMs: 0,
     graceMs: DEFAULT_GRACE_MS,
     serverNowMs: Date.now(),
+    challengerMissedTurns: 0,
+    opponentMissedTurns: 0,
     lastActionLog: undefined,
     logs: [],
 
@@ -123,7 +125,7 @@ export async function createBattleToRedis({
     chatId: chatId ?? '',
   }
 
-  await redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 1800)
+  await redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 180)
 
   return true
 }

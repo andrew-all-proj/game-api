@@ -97,11 +97,15 @@ export class BattleAttackService {
 
     ensureTurnTiming(battle)
 
-    // автопасс по таймеру
+    ensureTurnTiming(battle)
+
+    // autopass by timer (NOT for first turn)
     const nowMs = Date.now()
     const endsAt = battle.turnEndsAtMs!
     const grace = battle.graceMs ?? DEFAULT_GRACE_MS
-    if (nowMs > endsAt + grace) {
+    const isFirstTurn = (battle.turnNumber ?? 0) === 0
+
+    if (!isFirstTurn && nowMs > endsAt + grace) {
       attackId = null
       defenseId = null
     }
@@ -207,20 +211,27 @@ export class BattleAttackService {
       }
     }
 
-    // === Обновляем SP
+    // === Update SP (with maximum limit)
     let addStamina = 0
     if (doAttack) addStamina += 1
     if (doDefense && !doAttack) addStamina += 2
     if (!doAttack && !doDefense) addStamina = 3
 
     const totalSpend = (doAttack ? attackCost : 0) + (doDefense ? defenseCost : 0)
+
+    const currentSta = isChallenger ? battle.challengerMonsterStamina : battle.opponentMonsterStamina
+
+    const maxSta = isChallenger ? battle.challengerStats.stamina : battle.opponentStats.stamina
+
+    const nextSta = clamp(currentSta - totalSpend + addStamina, 0, maxSta)
+
     if (isChallenger) {
-      battle.challengerMonsterStamina = Math.max(0, battle.challengerMonsterStamina - totalSpend + addStamina)
+      battle.challengerMonsterStamina = nextSta
     } else {
-      battle.opponentMonsterStamina = Math.max(0, battle.opponentMonsterStamina - totalSpend + addStamina)
+      battle.opponentMonsterStamina = nextSta
     }
 
-    // === Проверка победителя
+    // === Check winner
     let winnerMonsterId: string | null = null
     let loserMonsterId: string | null = null
     if (battle.challengerMonsterHp === 0) {
@@ -308,13 +319,12 @@ export class BattleAttackService {
     battle.graceMs = battle.graceMs ?? DEFAULT_GRACE_MS
     battle.serverNowMs = Date.now()
 
-    // === Завершение боя (твоя логика сохранена)
     if (winnerMonsterId && loserMonsterId) {
       await this.endBattle(battle, winnerMonsterId, loserMonsterId, battleId)
     }
 
-    // Сохраняем, не сбрасывая TTL
-    await this.redisClient.set(key, JSON.stringify(battle), 'KEEPTTL')
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 180)
+
     return battle
   }
 

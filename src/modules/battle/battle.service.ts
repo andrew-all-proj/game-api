@@ -4,12 +4,17 @@ import { Server } from 'socket.io'
 import { createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
+import { DEFAULT_GRACE_MS, DEFAULT_TURN_MS, MAX_MISSED_TURNS } from '../../config/battle'
+import { BattleAttackService } from './battle-attack.service'
 
 @Injectable()
 export class BattleService {
   private server: Server
 
-  constructor(@Inject('REDIS_CLIENT') readonly redisClient: Redis) {}
+  constructor(
+    @Inject('REDIS_CLIENT') readonly redisClient: Redis,
+    private readonly attackService: BattleAttackService,
+  ) {}
 
   setServer(server: Server) {
     this.server = server
@@ -57,7 +62,7 @@ export class BattleService {
       battle.opponentReady = false
     }
 
-    await this.redisClient.set(key, JSON.stringify(battle), 'KEEPTTL')
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 180)
 
     return battle
   }
@@ -78,7 +83,7 @@ export class BattleService {
       return null
     }
 
-    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'KEEPTTL')
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 180)
 
     return battle
   }
@@ -90,5 +95,85 @@ export class BattleService {
         status: gameDb.datatypes.BattleStatusEnum.REJECTED,
       },
     )
+  }
+
+  async statusBattle(battleId: string): Promise<BattleRedis | null> {
+    const key = `battle:${battleId}`
+    const raw = await this.redisClient.get(key)
+    if (!raw) return null
+
+    const battle: BattleRedis = JSON.parse(raw)
+
+    if (battle.winnerMonsterId) return battle
+
+    const limit = battle.turnTimeLimit ?? DEFAULT_TURN_MS
+    const grace = battle.graceMs ?? DEFAULT_GRACE_MS
+    if (!battle.turnStartTime || !battle.turnEndsAtMs) {
+      const now = Date.now()
+      battle.turnStartTime = battle.turnStartTime ?? now
+      battle.turnEndsAtMs = battle.turnEndsAtMs ?? now + limit
+    }
+
+    const isFirstTurn = (battle.turnNumber ?? 0) === 0
+    const now = Date.now()
+
+    // первый ход не авто-скипаем
+    if (isFirstTurn || now <= battle.turnEndsAtMs + grace) return battle
+
+    // чей ход просрочен
+    const skipperId = battle.currentTurnMonsterId
+    const oppId = skipperId === battle.challengerMonsterId ? battle.opponentMonsterId : battle.challengerMonsterId
+
+    // PASS лог
+    battle.logs = battle.logs ?? []
+    battle.logs.push({
+      from: skipperId,
+      to: oppId,
+      action: gameDb.datatypes.ActionStatusEnum.PASS,
+      nameAction: 'Пропуск (таймаут)',
+      modifier: 0,
+      damage: 0,
+      block: 0,
+      effect: 'timeout',
+      cooldown: 0,
+      spCost: 0,
+      turnSkip: 1,
+      timestamp: new Date().toISOString(),
+    })
+
+    // +3 SP с капом по максимуму
+    const PASS_GAIN = 3
+    const isCh = skipperId === battle.challengerMonsterId
+    const curSta = isCh ? battle.challengerMonsterStamina : battle.opponentMonsterStamina
+    const maxSta = isCh ? battle.challengerStats.stamina : battle.opponentStats.stamina
+    const nextSta = Math.min(maxSta, curSta + PASS_GAIN)
+    if (isCh) battle.challengerMonsterStamina = nextSta
+    else battle.opponentMonsterStamina = nextSta
+
+    // счётчик таймаутов
+    if (isCh) battle.challengerMissedTurns = (battle.challengerMissedTurns ?? 0) + 1
+    else battle.opponentMissedTurns = (battle.opponentMissedTurns ?? 0) + 1
+
+    const misses = isCh ? (battle.challengerMissedTurns ?? 0) : (battle.opponentMissedTurns ?? 0)
+    if (misses >= (MAX_MISSED_TURNS ?? 3)) {
+      // тех.поражение
+      const winner = oppId
+      const loser = skipperId
+      await this.attackService.endBattle(battle, winner, loser, battleId)
+      await this.redisClient.set(key, JSON.stringify(battle), 'EX', 180)
+      return battle
+    }
+
+    // переход хода
+    const t0 = Date.now()
+    battle.currentTurnMonsterId = oppId
+    battle.turnNumber = (battle.turnNumber ?? 0) + 1
+    battle.turnStartTime = t0
+    battle.turnEndsAtMs = t0 + limit
+    battle.serverNowMs = Date.now()
+
+    await this.redisClient.set(key, JSON.stringify(battle), 'EX', 180)
+
+    return battle
   }
 }

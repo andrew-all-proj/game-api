@@ -104,4 +104,18 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
     this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
     this.server.to(battle.opponentSocketId).emit('responseBattle', battle)
   }
+
+  @SubscribeMessage('statusBattle')
+  async handleStatusBattle(@MessageBody() data: { battleId: string }, @ConnectedSocket() client: Socket) {
+    const battle = await this.battleService.statusBattle(data.battleId)
+
+    if (!battle) {
+      await this.battleService.rejectBattle(data.battleId)
+      logger.error(`[getBattle] Not found battle id ${data.battleId}`)
+      return this.server.to(client.id).emit('responseBattle', { rejected: true })
+    }
+
+    this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
+    this.server.to(battle.opponentSocketId).emit('responseBattle', battle)
+  }
 }

@@ -88,6 +88,8 @@ export interface BattleRedis {
   turnEndsAtMs: number
   graceMs: number
   serverNowMs: number
+  challengerMissedTurns: number
+  opponentMissedTurns: number
   lastActionLog?: LastActionLog
   logs?: gameDb.datatypes.BattleLog[]
 
