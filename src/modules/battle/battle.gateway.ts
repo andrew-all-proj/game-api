@@ -14,6 +14,7 @@ import { JwtService } from '@nestjs/jwt'
 import { authenticateWebSocketClient } from '../../functions/ws/authenticate-client'
 import { logger } from '../../functions/logger'
 import { BattleAttackService } from './battle-attack.service'
+import { BattleCompletedService } from './battle-completed.service'
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {

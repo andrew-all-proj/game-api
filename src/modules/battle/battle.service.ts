@@ -4,8 +4,16 @@ import { Server } from 'socket.io'
 import { createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
-import { DEFAULT_GRACE_MS, DEFAULT_TURN_MS, MAX_MISSED_TURNS } from '../../config/battle'
+import {
+  DEFAULT_GRACE_MS,
+  DEFAULT_TURN_MS,
+  FIRST_TURN_EXTRA_MS,
+  MAX_MISSED_TURNS,
+  PASS_GAIN,
+  TTL_BATTLE,
+} from '../../config/battle'
 import { BattleAttackService } from './battle-attack.service'
+import { BattleCompletedService } from './battle-completed.service'
 
 @Injectable()
 export class BattleService {
@@ -14,6 +22,7 @@ export class BattleService {
   constructor(
     @Inject('REDIS_CLIENT') readonly redisClient: Redis,
     private readonly attackService: BattleAttackService,
+    private readonly battleCompletedService: BattleCompletedService,
   ) {}
 
   setServer(server: Server) {
@@ -62,7 +71,7 @@ export class BattleService {
       battle.opponentReady = false
     }
 
-    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 180)
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
 
     return battle
   }
@@ -83,7 +92,7 @@ export class BattleService {
       return null
     }
 
-    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 180)
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
 
     return battle
   }
@@ -103,11 +112,11 @@ export class BattleService {
     if (!raw) return null
 
     const battle: BattleRedis = JSON.parse(raw)
-
     if (battle.winnerMonsterId) return battle
 
     const limit = battle.turnTimeLimit ?? DEFAULT_TURN_MS
     const grace = battle.graceMs ?? DEFAULT_GRACE_MS
+
     if (!battle.turnStartTime || !battle.turnEndsAtMs) {
       const now = Date.now()
       battle.turnStartTime = battle.turnStartTime ?? now
@@ -117,14 +126,17 @@ export class BattleService {
     const isFirstTurn = (battle.turnNumber ?? 0) === 0
     const now = Date.now()
 
-    // первый ход не авто-скипаем
-    if (isFirstTurn || now <= battle.turnEndsAtMs + grace) return battle
+    // on the first move we wait 15s longer before autopass
+    const extra = isFirstTurn ? FIRST_TURN_EXTRA_MS : 0
+    if (now <= battle.turnEndsAtMs + grace + extra) {
+      return battle
+    }
 
-    // чей ход просрочен
+    // whose turn is overdue
     const skipperId = battle.currentTurnMonsterId
     const oppId = skipperId === battle.challengerMonsterId ? battle.opponentMonsterId : battle.challengerMonsterId
 
-    // PASS лог
+    // PASS log
     battle.logs = battle.logs ?? []
     battle.logs.push({
       from: skipperId,
@@ -142,7 +154,6 @@ export class BattleService {
     })
 
     // +3 SP с капом по максимуму
-    const PASS_GAIN = 3
     const isCh = skipperId === battle.challengerMonsterId
     const curSta = isCh ? battle.challengerMonsterStamina : battle.opponentMonsterStamina
     const maxSta = isCh ? battle.challengerStats.stamina : battle.opponentStats.stamina
@@ -150,21 +161,21 @@ export class BattleService {
     if (isCh) battle.challengerMonsterStamina = nextSta
     else battle.opponentMonsterStamina = nextSta
 
-    // счётчик таймаутов
+    // timeout counter
     if (isCh) battle.challengerMissedTurns = (battle.challengerMissedTurns ?? 0) + 1
     else battle.opponentMissedTurns = (battle.opponentMissedTurns ?? 0) + 1
 
     const misses = isCh ? (battle.challengerMissedTurns ?? 0) : (battle.opponentMissedTurns ?? 0)
     if (misses >= (MAX_MISSED_TURNS ?? 3)) {
-      // тех.поражение
+      // technical loss
       const winner = oppId
       const loser = skipperId
-      await this.attackService.endBattle(battle, winner, loser, battleId)
-      await this.redisClient.set(key, JSON.stringify(battle), 'EX', 180)
+      await this.battleCompletedService.endBattle(battle, winner, loser, battleId)
+      await this.redisClient.set(key, JSON.stringify(battle), 'EX', TTL_BATTLE)
       return battle
     }
 
-    // переход хода
+    // transition of the move
     const t0 = Date.now()
     battle.currentTurnMonsterId = oppId
     battle.turnNumber = (battle.turnNumber ?? 0) + 1
@@ -172,7 +183,7 @@ export class BattleService {
     battle.turnEndsAtMs = t0 + limit
     battle.serverNowMs = Date.now()
 
-    await this.redisClient.set(key, JSON.stringify(battle), 'EX', 180)
+    await this.redisClient.set(key, JSON.stringify(battle), 'EX', TTL_BATTLE)
 
     return battle
   }

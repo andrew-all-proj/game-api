@@ -2,16 +2,10 @@ import { Inject, Injectable } from '@nestjs/common'
 import { Redis } from 'ioredis'
 import { Server } from 'socket.io'
 import * as gameDb from 'game-db'
-import { fetchRequest } from '../../functions/fetchRequest'
-import config from '../../config'
-import { logBattle, logger } from '../../functions/logger'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
-import { updateExpMonster } from '../../functions/updateExpMonster'
-import { updateEnergy } from '../../functions/update-energy'
-import { updateFood } from '../../functions/update-food'
-import { battleExpRewards } from '../../config/monster-starting-stats'
 import { Skill } from 'game-db/dist/entity'
-import { DEFAULT_GRACE_MS, DEFAULT_TURN_MS, SATIETY_COST } from '../../config/battle'
+import { DEFAULT_GRACE_MS, DEFAULT_TURN_MS, TTL_BATTLE } from '../../config/battle'
+import { BattleCompletedService } from './battle-completed.service'
 
 /** ---------- helpers ---------- */
 
@@ -65,7 +59,10 @@ function applyIncomingDefense(
 @Injectable()
 export class BattleAttackService {
   private server: Server
-  constructor(@Inject('REDIS_CLIENT') readonly redisClient: Redis) {}
+  constructor(
+    @Inject('REDIS_CLIENT') readonly redisClient: Redis,
+    readonly battleCompletedService: BattleCompletedService,
+  ) {}
   setServer(server: Server) {
     this.server = server
   }
@@ -116,12 +113,12 @@ export class BattleAttackService {
     const selectedAttack = this.getAttack(battle, monsterId, attackId)
     const selectedDefense = this.getDefense(battle, monsterId, defenseId)
 
-    // Текущая выносливость атакующего
+    // Current stamina of the attacker
     const stamina = isChallenger ? battle.challengerMonsterStamina : battle.opponentMonsterStamina
     const attackCost = selectedAttack?.energyCost ?? 0
     const defenseCost = selectedDefense?.energyCost ?? 0
 
-    // Решаем, что можем выполнить по SP (приоритет — атака):
+    // We decide what we can do for SP (priority - attack):
     let doAttack = !!selectedAttack
     let doDefense = !!selectedDefense
     const totalCost = attackCost + defenseCost
@@ -136,13 +133,13 @@ export class BattleAttackService {
       }
     }
 
-    // === Расчёт урона (до входящей защиты)
+    // Damage calculation (before incoming defense)
     const atkStat =
       (selectedAttack?.strength ?? 0) * (isChallenger ? battle.challengerStats.strength : battle.opponentStats.strength)
     let damage = doAttack ? Math.round(atkStat) : 0
 
-    // === Применяем АКТИВНУЮ защиту защищающегося (если есть)
-    // Она ставилась им на прошлом ходу (battle.activeDefense)
+    // We use ACTIVE protection of the defender (if any)
+    // It was placed by him on the last turn (battle.activeDefense)
     let defenseBlock = 0
     let evaded = false
     if (doAttack && battle.activeDefense && battle.activeDefense.monsterId === defenderId) {
@@ -163,7 +160,7 @@ export class BattleAttackService {
       defenseBlock = block
       evaded = ev
 
-      // активную защиту отрабатываем 1 раз
+      // we practice active defense once
       delete battle.activeDefense
 
       if (evaded) {
@@ -186,7 +183,7 @@ export class BattleAttackService {
       }
     }
 
-    // === Применяем урон
+    // Apply damage
     if (doAttack && !evaded) {
       if (isChallenger) {
         battle.opponentMonsterHp = Math.max(0, battle.opponentMonsterHp - damage)
@@ -195,15 +192,13 @@ export class BattleAttackService {
       }
     }
 
-    // === Ставим СВОЮ защиту на следующий входящий удар (если выбрана защита)
+    // We put OUR defense on the next incoming blow (if defense is selected)
     if (doDefense && selectedDefense) {
       battle.activeDefense = {
         monsterId,
         action: {
           name: selectedDefense.name || '',
-          // важное: используем defense как множитель блока
           defense: selectedDefense.defense ?? 0,
-          // и evasion как множитель шанса уклонения
           evasion: selectedDefense.evasion ?? 0,
           cooldown: selectedDefense.cooldown ?? 0,
           energyCost: selectedDefense.energyCost ?? 0,
@@ -309,7 +304,7 @@ export class BattleAttackService {
       stamina: addStamina,
     }
 
-    // === Переход хода и тайминги
+    // Transition of the move and timings
     battle.currentTurnMonsterId = defenderId
     battle.turnNumber = (battle.turnNumber ?? 0) + 1
     const nextDuration = battle.turnTimeLimit ?? DEFAULT_TURN_MS
@@ -320,102 +315,11 @@ export class BattleAttackService {
     battle.serverNowMs = Date.now()
 
     if (winnerMonsterId && loserMonsterId) {
-      await this.endBattle(battle, winnerMonsterId, loserMonsterId, battleId)
+      await this.battleCompletedService.endBattle(battle, winnerMonsterId, loserMonsterId, battleId)
     }
 
-    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 180)
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
 
     return battle
-  }
-
-  /**
-   * Завершает бой, обновляет БД, начисляет награды и т.д.
-   */
-  async endBattle(battle: BattleRedis, winnerMonsterId: string, loserMonsterId: string, battleId: string) {
-    battle.winnerMonsterId = winnerMonsterId
-
-    const manager = gameDb.AppDataSource.manager
-
-    await gameDb.Entities.MonsterBattles.update(battleId, {
-      status: gameDb.datatypes.BattleStatusEnum.FINISHED,
-      winnerMonsterId,
-      log: battle.logs,
-    })
-
-    updateExpMonster(winnerMonsterId, loserMonsterId, battleExpRewards.winExp, battleExpRewards.loseExp).catch(
-      (error) => {
-        logger.error(`Failed to update experience for winner ${winnerMonsterId} or loser ${loserMonsterId}:`, error)
-      },
-    )
-
-    logBattle.info('battle', {
-      battleId,
-      winnerMonsterId,
-      challengerMonsterId: battle.challengerMonsterId,
-      opponentMonsterId: battle.opponentMonsterId,
-      challengerStats: battle.challengerStats,
-      opponentStats: battle.opponentStats,
-      challengerFinalHp: battle.challengerMonsterHp,
-      opponentFinalHp: battle.opponentMonsterHp,
-      challengerFinalSp: battle.challengerMonsterStamina,
-      opponentFinalSp: battle.opponentMonsterStamina,
-      finishedAt: new Date().toISOString(),
-      logCount: battle.logs?.length ?? 0,
-    })
-
-    battle.logs?.forEach((log, index) => {
-      logBattle.info('battle-turn', { battleId, turn: index + 1, ...log })
-    })
-
-    await manager
-      .createQueryBuilder()
-      .update(gameDb.Entities.Monster)
-      .set({ satiety: () => `GREATEST(satiety - ${SATIETY_COST}, 0)` })
-      .where('id IN (:...ids)', { ids: [battle.challengerMonsterId, battle.opponentMonsterId] })
-      .execute()
-
-    const foodRepo = gameDb.AppDataSource.getRepository(gameDb.Entities.Food)
-    const foods = await foodRepo.find()
-    if (!foods.length) {
-      logger.error('No food found in database')
-    } else {
-      const food = foods[Math.floor(Math.random() * foods.length)]
-
-      const challengerUser = await manager.findOne(gameDb.Entities.User, { where: { id: battle.challengerUserId } })
-      const opponentUser = await manager.findOne(gameDb.Entities.User, { where: { id: battle.opponentUserId } })
-
-      if (challengerUser && opponentUser) {
-        await Promise.all([updateEnergy(challengerUser, manager, -125), updateEnergy(opponentUser, manager, -125)])
-
-        const foodQuantity = Math.floor(Math.random() * 2) + 1
-
-        if (winnerMonsterId === battle.challengerMonsterId) {
-          await updateFood(challengerUser, manager, food.id, foodQuantity)
-          battle.challengerGetReward = {
-            exp: battleExpRewards.winExp,
-            food: { id: food.id, name: food.name, quantity: foodQuantity },
-          }
-          battle.opponentGetReward = { exp: battleExpRewards.loseExp }
-        } else {
-          await updateFood(opponentUser, manager, food.id, foodQuantity)
-          battle.challengerGetReward = { exp: battleExpRewards.loseExp }
-          battle.opponentGetReward = {
-            exp: battleExpRewards.winExp,
-            food: { id: food.id, name: food.name, quantity: foodQuantity },
-          }
-        }
-      } else {
-        if (!challengerUser) logger.error('Challenger user not found')
-        if (!opponentUser) logger.error('Opponent user not found')
-      }
-    }
-
-    if (battle.chatId) {
-      fetchRequest({
-        url: `http://${config.botServiceUrl}/result-battle/${battleId}`,
-        method: 'GET',
-        headers: { Authorization: `Bearer ${config.botServiceToken}` },
-      }).catch((error) => logger.error('Fetch result battle', error))
-    }
   }
 }

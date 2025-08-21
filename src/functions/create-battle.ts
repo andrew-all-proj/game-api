@@ -5,7 +5,7 @@ import { getMonsterById } from './redis/get-monster-by-id'
 import { BattleRedis } from '../datatypes/common/BattleRedis'
 import { logger } from './logger'
 import { v4 as uuidv4 } from 'uuid'
-import { DEFAULT_TURN_MS, DEFAULT_GRACE_MS, SATIETY_COST } from '../config/battle'
+import { DEFAULT_TURN_MS, DEFAULT_GRACE_MS, SATIETY_COST, TTL_BATTLE } from '../config/battle'
 
 interface CreateBattleArgs {
   redisClient: Redis
@@ -125,7 +125,7 @@ export async function createBattleToRedis({
     chatId: chatId ?? '',
   }
 
-  await redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', 180)
+  await redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
 
   return true
 }
@@ -181,9 +181,9 @@ export async function createBattle({
     }
   }
 
-  const opponentMonsterUserEnergy = await checkEnergyAndSatiety(opponentMonsterId)
-  const challengerMonsterUserEnergy = await checkEnergyAndSatiety(challengerMonsterId)
-  if (!opponentMonsterUserEnergy || !challengerMonsterUserEnergy) {
+  const opponentMonsterUserEnergyAndSatiety = await checkEnergyAndSatiety(opponentMonsterId)
+  const challengerMonsterUserEnergyAndSatiety = await checkEnergyAndSatiety(challengerMonsterId)
+  if (!opponentMonsterUserEnergyAndSatiety || !challengerMonsterUserEnergyAndSatiety) {
     return {
       result: false,
       battleId: null,

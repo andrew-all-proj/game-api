@@ -48,8 +48,13 @@ interface BattleReward {
     name: string
     quantity: number
   }
-  exp: number
+  exp?: number
   mutagen?: {
+    id: string
+    name: string
+    quantity: number
+  }
+  skill?: {
     id: string
     name: string
     quantity: number
