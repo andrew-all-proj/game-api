@@ -28,9 +28,10 @@ interface ActiveDefense {
   monsterId: string
   action: {
     name: string
-    modifier: number
+    defense: number
     cooldown: number
     energyCost: number
+    evasion: number
   }
 }
 
@@ -47,8 +48,13 @@ interface BattleReward {
     name: string
     quantity: number
   }
-  exp: number
+  exp?: number
   mutagen?: {
+    id: string
+    name: string
+    quantity: number
+  }
+  skill?: {
     id: string
     name: string
     quantity: number
@@ -56,6 +62,7 @@ interface BattleReward {
 }
 
 export interface BattleRedis {
+  rejected: boolean
   battleId: string
   opponentMonsterId: string
   challengerMonsterId: string
@@ -82,13 +89,19 @@ export interface BattleRedis {
   currentTurnMonsterId: string
   turnStartTime: number
   turnTimeLimit: number
+  turnNumber: number
+  turnEndsAtMs: number
+  graceMs: number
+  serverNowMs: number
+  challengerMissedTurns: number
+  opponentMissedTurns: number
   lastActionLog?: LastActionLog
   logs?: gameDb.datatypes.BattleLog[]
 
   challengerSocketId: string
   opponentSocketId: string
-  challengerReady: '1' | '0'
-  opponentReady: '1' | '0'
+  challengerReady: boolean
+  opponentReady: boolean
   winnerMonsterId?: string
   chatId?: string | null
 

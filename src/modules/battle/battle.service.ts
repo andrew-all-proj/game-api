@@ -3,21 +3,27 @@ import { Redis } from 'ioredis'
 import { Server } from 'socket.io'
 import { createBattleToRedis } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
-import { fetchRequest } from '../../functions/fetchRequest'
-import config from '../../config'
-import { logBattle, logger } from '../../functions/logger'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
-import { updateExpMonster } from '../../functions/updateExpMonster'
-import { updateEnergy } from '../../functions/update-energy'
-import { updateFood } from '../../functions/update-food'
-import { battleExpRewards } from '../../config/monster-starting-stats'
-import { Skill } from 'game-db/dist/entity'
+import {
+  DEFAULT_GRACE_MS,
+  DEFAULT_TURN_MS,
+  FIRST_TURN_EXTRA_MS,
+  MAX_MISSED_TURNS,
+  PASS_GAIN,
+  TTL_BATTLE,
+} from '../../config/battle'
+import { BattleAttackService } from './battle-attack.service'
+import { BattleCompletedService } from './battle-completed.service'
 
 @Injectable()
 export class BattleService {
   private server: Server
 
-  constructor(@Inject('REDIS_CLIENT') readonly redisClient: Redis) {}
+  constructor(
+    @Inject('REDIS_CLIENT') readonly redisClient: Redis,
+    private readonly attackService: BattleAttackService,
+    private readonly battleCompletedService: BattleCompletedService,
+  ) {}
 
   setServer(server: Server) {
     this.server = server
@@ -59,13 +65,13 @@ export class BattleService {
 
     if (isChallenger) {
       battle.challengerSocketId = socketId
-      battle.challengerReady = '0'
+      battle.challengerReady = false
     } else {
       battle.opponentSocketId = socketId
-      battle.opponentReady = '0'
+      battle.opponentReady = false
     }
 
-    await this.redisClient.set(key, JSON.stringify(battle))
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
 
     return battle
   }
@@ -78,290 +84,106 @@ export class BattleService {
 
     if (monsterId === battle.challengerMonsterId) {
       battle.challengerSocketId = socketId
-      battle.challengerReady = '1'
+      battle.challengerReady = true
     } else if (monsterId === battle.opponentMonsterId) {
       battle.opponentSocketId = socketId
-      battle.opponentReady = '1'
+      battle.opponentReady = true
     } else {
       return null
     }
 
-    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle))
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
 
     return battle
   }
 
-  private getActionFromBattle(
-    battle: BattleRedis,
-    type: gameDb.datatypes.ActionStatusEnum,
-    monsterId: string,
-    actionId: string | null,
-  ): Partial<Skill> | null {
-    const isChallenger = monsterId === battle.challengerMonsterId
-    if (type === gameDb.datatypes.ActionStatusEnum.PASS) {
-      return {
-        id: '',
-        name: 'Пропуск',
-        energyCost: 0,
-        cooldown: 0,
-        strength: 0,
-        defense: 0,
-      }
-    }
-
-    if (type === gameDb.datatypes.ActionStatusEnum.ATTACK) {
-      return (
-        (isChallenger
-          ? battle.challengerAttacks?.find((a) => a.id === actionId)
-          : battle.opponentAttacks?.find((a) => a.id === actionId)) ?? null
-      )
-    }
-
-    if (type === gameDb.datatypes.ActionStatusEnum.DEFENSE) {
-      return (
-        (isChallenger
-          ? battle.challengerDefenses?.find((d) => d.id === actionId)
-          : battle.opponentDefenses?.find((d) => d.id === actionId)) ?? null
-      )
-    }
-
-    return null
+  async rejectBattle(battleId: string) {
+    gameDb.Entities.MonsterBattles.update(
+      { id: battleId },
+      {
+        status: gameDb.datatypes.BattleStatusEnum.REJECTED,
+      },
+    )
   }
 
-  async attack(
-    battleId: string,
-    actionId: string | null,
-    actionType: gameDb.datatypes.ActionStatusEnum,
-    monsterId: string,
-  ): Promise<BattleRedis | null> {
+  async statusBattle(battleId: string): Promise<BattleRedis | null> {
     const key = `battle:${battleId}`
-    const battleStr = await this.redisClient.get(key)
-    if (!battleStr) return null
+    const raw = await this.redisClient.get(key)
+    if (!raw) return null
 
-    const battle: BattleRedis = JSON.parse(battleStr) as BattleRedis
-    if (battle.currentTurnMonsterId !== monsterId) return null
+    const battle: BattleRedis = JSON.parse(raw)
+    if (battle.winnerMonsterId) return battle
 
-    const timestamp = new Date().toISOString()
-    const isChallenger = monsterId === battle.challengerMonsterId
-    const defenderId = isChallenger ? battle.opponentMonsterId : battle.challengerMonsterId
-    const action = this.getActionFromBattle(battle, actionType, monsterId, actionId)
-    if (!action) return null
-    let damage = 0
-    let defenseBlock = 0
+    const limit = battle.turnTimeLimit ?? DEFAULT_TURN_MS
+    const grace = battle.graceMs ?? DEFAULT_GRACE_MS
 
-    const stamina = isChallenger ? battle.challengerMonsterStamina : battle.opponentMonsterStamina
-    const cost = action.energyCost ?? 0
-
-    if (stamina < cost) {
-      actionType = gameDb.datatypes.ActionStatusEnum.PASS
-      actionId = null
+    if (!battle.turnStartTime || !battle.turnEndsAtMs) {
+      const now = Date.now()
+      battle.turnStartTime = battle.turnStartTime ?? now
+      battle.turnEndsAtMs = battle.turnEndsAtMs ?? now + limit
     }
 
-    let addStamina = 0
+    const isFirstTurn = (battle.turnNumber ?? 0) === 0
+    const now = Date.now()
 
-    switch (actionType) {
-      case gameDb.datatypes.ActionStatusEnum.ATTACK: {
-        if (battle.activeDefense && battle.activeDefense.monsterId === defenderId) {
-          const defenderStats =
-            defenderId === battle.challengerMonsterId ? battle.challengerStats : battle.opponentStats
-
-          defenseBlock = Math.round(defenderStats.defense * battle.activeDefense.action.modifier)
-          delete battle.activeDefense
-        }
-
-        damage = Math.round(
-          (action.strength || 0) * (isChallenger ? battle.challengerStats.strength : battle.opponentStats.strength),
-        )
-        const finalDamage = Math.max(0, damage - defenseBlock)
-        addStamina = 1
-
-        if (isChallenger) {
-          battle.challengerMonsterStamina = Math.max(
-            0,
-            battle.challengerMonsterStamina - (action.energyCost ?? 0) + addStamina,
-          )
-        } else {
-          battle.opponentMonsterStamina = Math.max(
-            0,
-            battle.opponentMonsterStamina - (action.energyCost ?? 0) + addStamina,
-          )
-        }
-
-        if (isChallenger) {
-          battle.opponentMonsterHp = Math.max(0, battle.opponentMonsterHp - finalDamage)
-        } else {
-          battle.challengerMonsterHp = Math.max(0, battle.challengerMonsterHp - finalDamage)
-        }
-        break
-      }
-      case gameDb.datatypes.ActionStatusEnum.DEFENSE:
-        battle.activeDefense = {
-          monsterId,
-          action: {
-            name: action.name || '',
-            modifier: action?.strength ?? 0,
-            cooldown: action.cooldown ?? 0,
-            energyCost: action.energyCost ?? 0,
-          },
-        }
-        addStamina = 2
-        if (isChallenger) {
-          battle.challengerMonsterStamina = Math.max(
-            0,
-            battle.challengerMonsterStamina - (action.energyCost ?? 0) + addStamina,
-          )
-        } else {
-          battle.opponentMonsterStamina = Math.max(
-            0,
-            battle.opponentMonsterStamina - (action.energyCost ?? 0) + addStamina,
-          )
-        }
-        break
-
-      case gameDb.datatypes.ActionStatusEnum.PASS:
-        addStamina = 3
-        if (isChallenger) {
-          battle.challengerMonsterStamina += addStamina
-        } else {
-          battle.opponentMonsterStamina += addStamina
-        }
-        break
-
-      default:
-        return null
+    // on the first move we wait 15s longer before autopass
+    const extra = isFirstTurn ? FIRST_TURN_EXTRA_MS : 0
+    if (now <= battle.turnEndsAtMs + grace + extra) {
+      return battle
     }
 
-    let winnerMonsterId: string | null = null
-    let loserMonsterId: string | null = null
-    if (battle.challengerMonsterHp === 0) {
-      winnerMonsterId = battle.opponentMonsterId
-      loserMonsterId = battle.challengerMonsterId
-    } else if (battle.opponentMonsterHp === 0) {
-      winnerMonsterId = battle.challengerMonsterId
-      loserMonsterId = battle.opponentMonsterId
-    }
+    // whose turn is overdue
+    const skipperId = battle.currentTurnMonsterId
+    const oppId = skipperId === battle.challengerMonsterId ? battle.opponentMonsterId : battle.challengerMonsterId
 
-    battle.currentTurnMonsterId = defenderId
-    battle.turnStartTime = Date.now()
-    battle.turnTimeLimit = 30000
-
-    const logEntry: gameDb.datatypes.BattleLog = {
-      from: monsterId,
-      to: defenderId,
-      action: actionType,
-      nameAction: action.name || '',
-      modifier: action.strength,
-      damage: damage,
-      block: 0,
-      effect: undefined,
-      cooldown: action.cooldown ?? 0,
-      spCost: action.energyCost ?? 0,
-      turnSkip: 0,
-      timestamp,
-    }
-
+    // PASS log
     battle.logs = battle.logs ?? []
-    battle.logs.push(logEntry)
-    battle.lastActionLog = {
-      monsterId: monsterId,
-      actionName: action.name || 'не известно',
-      damage: damage,
-      stamina: addStamina,
+    battle.logs.push({
+      from: skipperId,
+      to: oppId,
+      action: gameDb.datatypes.ActionStatusEnum.PASS,
+      nameAction: 'Пропуск (таймаут)',
+      modifier: 0,
+      damage: 0,
+      block: 0,
+      effect: 'timeout',
+      cooldown: 0,
+      spCost: 0,
+      turnSkip: 1,
+      timestamp: new Date().toISOString(),
+    })
+
+    // +3 SP с капом по максимуму
+    const isCh = skipperId === battle.challengerMonsterId
+    const curSta = isCh ? battle.challengerMonsterStamina : battle.opponentMonsterStamina
+    const maxSta = isCh ? battle.challengerStats.stamina : battle.opponentStats.stamina
+    const nextSta = Math.min(maxSta, curSta + PASS_GAIN)
+    if (isCh) battle.challengerMonsterStamina = nextSta
+    else battle.opponentMonsterStamina = nextSta
+
+    // timeout counter
+    if (isCh) battle.challengerMissedTurns = (battle.challengerMissedTurns ?? 0) + 1
+    else battle.opponentMissedTurns = (battle.opponentMissedTurns ?? 0) + 1
+
+    const misses = isCh ? (battle.challengerMissedTurns ?? 0) : (battle.opponentMissedTurns ?? 0)
+    if (misses >= (MAX_MISSED_TURNS ?? 3)) {
+      // technical loss
+      const winner = oppId
+      const loser = skipperId
+      await this.battleCompletedService.endBattle(battle, winner, loser, battleId)
+      await this.redisClient.set(key, JSON.stringify(battle), 'EX', TTL_BATTLE)
+      return battle
     }
 
-    if (winnerMonsterId && loserMonsterId) {
-      battle.winnerMonsterId = winnerMonsterId
+    // transition of the move
+    const t0 = Date.now()
+    battle.currentTurnMonsterId = oppId
+    battle.turnNumber = (battle.turnNumber ?? 0) + 1
+    battle.turnStartTime = t0
+    battle.turnEndsAtMs = t0 + limit
+    battle.serverNowMs = Date.now()
 
-      const manager = gameDb.AppDataSource.manager
-
-      await gameDb.Entities.MonsterBattles.update(battleId, {
-        status: gameDb.datatypes.BattleStatusEnum.FINISHED,
-        winnerMonsterId: winnerMonsterId,
-        log: battle.logs,
-      })
-
-      updateExpMonster(winnerMonsterId, loserMonsterId, battleExpRewards.winExp, battleExpRewards.loseExp).catch(
-        (error) => {
-          logger.error(`Failed to update experience for winner ${winnerMonsterId} or loser ${loserMonsterId}:`, error)
-        },
-      )
-
-      logBattle.info('battle', {
-        battleId,
-        winnerMonsterId: winnerMonsterId,
-        challengerMonsterId: battle.challengerMonsterId,
-        opponentMonsterId: battle.opponentMonsterId,
-        challengerStats: battle.challengerStats,
-        opponentStats: battle.opponentStats,
-        challengerFinalHp: battle.challengerMonsterHp,
-        opponentFinalHp: battle.opponentMonsterHp,
-        challengerFinalSp: battle.challengerMonsterStamina,
-        opponentFinalSp: battle.opponentMonsterStamina,
-        finishedAt: new Date().toISOString(),
-        logCount: battle.logs.length,
-      })
-
-      battle.logs.forEach((log, index) => {
-        logBattle.info('battle-turn', {
-          battleId,
-          turn: index + 1,
-          ...log,
-        })
-      })
-
-      const foodRepo = gameDb.AppDataSource.getRepository(gameDb.Entities.Food)
-      const foods = await foodRepo.find()
-      if (!foods.length) {
-        logger.error('No food found in database')
-      } else {
-        const food = foods[Math.floor(Math.random() * foods.length)]
-
-        const challengerUser = await manager.findOne(gameDb.Entities.User, { where: { id: battle.challengerUserId } })
-        const opponentUser = await manager.findOne(gameDb.Entities.User, { where: { id: battle.opponentUserId } })
-
-        if (challengerUser && opponentUser) {
-          await Promise.all([updateEnergy(challengerUser, manager, -125), updateEnergy(opponentUser, manager, -125)])
-
-          const foodQuantity = Math.floor(Math.random() * 2) + 1
-
-          if (winnerMonsterId === battle.challengerMonsterId) {
-            await updateFood(challengerUser, manager, food.id, foodQuantity)
-
-            battle.challengerGetReward = {
-              exp: battleExpRewards.winExp,
-              food: { id: food.id, name: food.name, quantity: foodQuantity },
-            }
-            battle.opponentGetReward = {
-              exp: battleExpRewards.loseExp,
-            }
-          } else {
-            await updateFood(opponentUser, manager, food.id, foodQuantity)
-
-            battle.challengerGetReward = {
-              exp: battleExpRewards.loseExp,
-            }
-            battle.opponentGetReward = {
-              exp: battleExpRewards.winExp,
-              food: { id: food.id, name: food.name, quantity: foodQuantity },
-            }
-          }
-        } else {
-          if (!challengerUser) logger.error('Challenger user not found')
-          if (!opponentUser) logger.error('Opponent user not found')
-        }
-      }
-
-      if (battle.chatId) {
-        fetchRequest({
-          url: `http://${config.botServiceUrl}/result-battle/${battleId}`,
-          method: 'GET',
-          headers: { Authorization: `Bearer ${config.botServiceToken}` },
-        }).catch((error) => logger.error('Fetch result battle', error))
-      }
-    }
-
-    await this.redisClient.set(key, JSON.stringify(battle))
-    await this.redisClient.expire(key, 1800)
+    await this.redisClient.set(key, JSON.stringify(battle), 'EX', TTL_BATTLE)
 
     return battle
   }

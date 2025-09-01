@@ -5,6 +5,7 @@ import { getMonsterById } from './redis/get-monster-by-id'
 import { BattleRedis } from '../datatypes/common/BattleRedis'
 import { logger } from './logger'
 import { v4 as uuidv4 } from 'uuid'
+import { DEFAULT_TURN_MS, DEFAULT_GRACE_MS, SATIETY_COST, TTL_BATTLE } from '../config/battle'
 
 interface CreateBattleArgs {
   redisClient: Redis
@@ -27,8 +28,6 @@ interface CreateBattleToRedisArgs {
   chatId?: string
 }
 
-const SATIETY_COST = 25
-
 export async function createBattleToRedis({
   redisClient,
   newBattle,
@@ -49,26 +48,29 @@ export async function createBattleToRedis({
     }),
   ])
 
-  const monsters = [opponentMonster, challengerMonster]
-
   if ((opponentMonster?.satiety ?? 0) < SATIETY_COST || (challengerMonster?.satiety ?? 0) < SATIETY_COST) {
     logger.info('Monster is hungry')
+    gameDb.Entities.MonsterBattles.update(
+      { id: battleId },
+      {
+        status: gameDb.datatypes.BattleStatusEnum.REJECTED,
+      },
+    )
     return false
   }
 
-  for (const monster of monsters) {
-    if (!monster) continue
-    if ((monster.satiety ?? 0) > SATIETY_COST) {
-      monster.satiety = (monster.satiety ?? 0) - SATIETY_COST
-      await gameDb.Entities.Monster.update(monster.id, { satiety: monster.satiety })
-    }
-  }
-
   if (!opponentMonster?.healthPoints || !challengerMonster?.healthPoints) {
+    gameDb.Entities.MonsterBattles.update(
+      { id: battleId },
+      {
+        status: gameDb.datatypes.BattleStatusEnum.REJECTED,
+      },
+    )
     return false
   }
 
   const battle: BattleRedis = {
+    rejected: false,
     battleId,
     opponentMonsterId,
     challengerMonsterId,
@@ -104,31 +106,36 @@ export async function createBattleToRedis({
 
     currentTurnMonsterId: challengerMonsterId,
     turnStartTime: Date.now(),
-    turnTimeLimit: 30000,
+    turnTimeLimit: DEFAULT_TURN_MS,
+    turnNumber: 0,
+    turnEndsAtMs: 0,
+    graceMs: DEFAULT_GRACE_MS,
+    serverNowMs: Date.now(),
+    challengerMissedTurns: 0,
+    opponentMissedTurns: 0,
     lastActionLog: undefined,
     logs: [],
 
     challengerSocketId: challengerSocketId ?? '',
     opponentSocketId: opponentSocketId ?? '',
 
-    challengerReady: '0',
-    opponentReady: '0',
+    challengerReady: false,
+    opponentReady: false,
 
     chatId: chatId ?? '',
   }
 
-  await redisClient.set(`battle:${battleId}`, JSON.stringify(battle))
-  await redisClient.expire(`battle:${battleId}`, 3600)
+  await redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
 
   return true
 }
 
-const checkEnergy = async (monsterId: string): Promise<boolean> => {
+const checkEnergyAndSatiety = async (monsterId: string): Promise<boolean> => {
   const monster = await gameDb.Entities.Monster.findOne({ where: { id: monsterId }, relations: ['user'] })
   if (!monster) {
     return false
   }
-  if (monster.user.energy >= 125) {
+  if (monster.user.energy >= 125 && monster.satiety >= SATIETY_COST) {
     return true
   }
 
@@ -174,9 +181,9 @@ export async function createBattle({
     }
   }
 
-  const opponentMonsterUserEnergy = await checkEnergy(opponentMonsterId)
-  const challengerMonsterUserEnergy = await checkEnergy(challengerMonsterId)
-  if (!opponentMonsterUserEnergy || !challengerMonsterUserEnergy) {
+  const opponentMonsterUserEnergyAndSatiety = await checkEnergyAndSatiety(opponentMonsterId)
+  const challengerMonsterUserEnergyAndSatiety = await checkEnergyAndSatiety(challengerMonsterId)
+  if (!opponentMonsterUserEnergyAndSatiety || !challengerMonsterUserEnergyAndSatiety) {
     return {
       result: false,
       battleId: null,
