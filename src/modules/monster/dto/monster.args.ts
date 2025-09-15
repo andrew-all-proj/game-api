@@ -36,10 +36,6 @@ export class MonsterCreateArgs {
   @Field({ nullable: true })
   userId?: string
 
-  @IsUUID()
-  @Field()
-  fileId: string
-
   @Field(() => SelectedPartsKey)
   @ValidateNested()
   selectedPartsKey: SelectedPartsKey
