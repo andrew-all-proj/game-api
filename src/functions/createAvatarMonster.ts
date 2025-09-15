@@ -57,7 +57,7 @@ export async function renderMonsterAvatarPNG({
   // Входные параметры сцены (не размеры итогового файла!)
   const bodyX = Math.round(options?.bodyX ?? 0)
   const bodyY = Math.round(options?.bodyY ?? 145)
-  const scale = options?.baseScale ?? 0.16
+  const scale = options?.baseScale ?? 1
 
   const bodyKey = getStayFrameKey(frames, selectedPartsKey.bodyKey)
   if (!bodyKey) throw new BadRequestException(`Stay frame not found for bodyKey=${selectedPartsKey.bodyKey}`)
