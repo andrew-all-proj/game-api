@@ -19,7 +19,7 @@ export async function createCustomSpriteSheet({
   spriteSheetBuffer: Buffer
   selectedPartsKey: SelectedPartsKey
   monsterId: string
-}): Promise<string> {
+}) {
   // filter parts
   const framesToInclude = Object.entries(atlasJson.frames).filter(
     ([key]) =>
@@ -252,7 +252,7 @@ export async function createCustomSpriteSheet({
     fs.promises.writeFile(atlasPath, JSON.stringify(atlasJsonData, null, 2)),
   ])
 
-  return atlasId
+  return { imageId, atlasId }
 }
 
 export const createSpriteSheetMonster = async (
@@ -292,12 +292,22 @@ export const createSpriteSheetMonster = async (
   const atlasJsonParsed = loadAtlasJson(atlasJsonFile)
   const spriteSheetBuffer = loadSpriteSheetBuffer(spriteSheetFile)
 
-  const atlasId = await createCustomSpriteSheet({
+  const { imageId, atlasId } = await createCustomSpriteSheet({
     atlasJson: atlasJsonParsed,
     spriteSheetBuffer: spriteSheetBuffer,
     selectedPartsKey,
     monsterId: monsterId,
   })
+
+  await manager.save(
+    gameDb.Entities.File.create({
+      id: imageId,
+      monsterId: monsterId,
+      fileType: gameDb.datatypes.FileTypeEnum.IMAGE,
+      contentType: gameDb.datatypes.ContentTypeEnum.SPRITE_SHEET_MONSTER,
+      url: `${imageId}.png`,
+    }),
+  )
 
   await manager.save(
     gameDb.Entities.File.create({
