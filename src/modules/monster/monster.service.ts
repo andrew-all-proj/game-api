@@ -17,6 +17,7 @@ import { Monster, MonstersList } from './entities/monster'
 import { createSpriteSheetMonster } from '../../functions/createSpriteSheet'
 import { logger } from '../../functions/logger'
 import { costToCreateMonster, monsterStartingStats } from '../../config/monster-starting-stats'
+import { createAvatarMonster } from 'src/functions/createAvatarMonster'
 
 @Injectable()
 export class MonsterService {
@@ -38,71 +39,41 @@ export class MonsterService {
       const newMonster = await gameDb.AppDataSource.transaction(async (manager) => {
         const user = await manager.findOne(gameDb.Entities.User, {
           where: { id: userIdCreateMonster },
-          relations: ['monsters'],
+          lock: { mode: 'pessimistic_write' },
         })
+        if (!user) throw new BadRequestException('User not found')
 
-        if (!user) {
-          throw new BadRequestException('User not found')
-        }
+        const monstersCount = await manager.count(gameDb.Entities.Monster, { where: { userId: user.id } })
+        if (monstersCount >= 4) throw new BadRequestException('User already has 4 monsters')
+        if (user.energy < costToCreateMonster) throw new BadRequestException('Not enough energy to create a monster')
 
-        if (user.monsters.length >= 4) {
-          throw new BadRequestException('User already has 4 monsters')
-        }
-
-        if (user.energy < costToCreateMonster) {
-          throw new BadRequestException('Not enough energy to create a monster')
-        }
-
-        const file = await manager.findOne(gameDb.Entities.File, {
-          where: { id: args.fileId },
-        })
-
-        if (!file) {
-          throw new BadRequestException('File not found')
-        }
-
-        user.energy = user.energy - costToCreateMonster
+        user.energy -= costToCreateMonster
         await manager.save(user)
 
         const monster = manager.create(gameDb.Entities.Monster, {
           name: args.name,
-          userId: userIdCreateMonster,
+          userId: user.id,
           ...monsterStartingStats.monster,
         })
-
         await manager.save(monster)
 
-        const baseSkills = await gameDb.Entities.Skill.find({ where: { isBase: true } })
+        const baseSkills = await manager.getRepository(gameDb.Entities.Skill).find({ where: { isBase: true } })
 
-        const baseAttaks = baseSkills.filter((skill) => skill.type === gameDb.datatypes.SkillType.ATTACK)
-        const baseDefense = baseSkills.filter((skill) => skill.type === gameDb.datatypes.SkillType.DEFENSE)
-
-        const attacks = baseAttaks.map((skill) =>
-          manager.create(gameDb.Entities.MonsterAttacks, {
-            skillId: skill.id,
-            monsterId: monster.id,
-          }),
-        )
+        const attacks = baseSkills
+          .filter((s) => s.type === gameDb.datatypes.SkillType.ATTACK)
+          .map((s) => manager.create(gameDb.Entities.MonsterAttacks, { skillId: s.id, monsterId: monster.id }))
         await manager.save(attacks)
 
-        const defenses = baseDefense.map((skill) =>
-          manager.create(gameDb.Entities.MonsterDefenses, {
-            skillId: skill.id,
-            monsterId: monster.id,
-          }),
-        )
+        const defenses = baseSkills
+          .filter((s) => s.type === gameDb.datatypes.SkillType.DEFENSE)
+          .map((s) => manager.create(gameDb.Entities.MonsterDefenses, { skillId: s.id, monsterId: monster.id }))
         await manager.save(defenses)
 
-        file.monsterId = monster.id
-        await manager.save(file)
+        await createAvatarMonster(args.selectedPartsKey, monster.id, manager)
+        await createSpriteSheetMonster(args.selectedPartsKey, monster.id, manager)
 
         return monster
       })
-
-      createSpriteSheetMonster(args.selectedPartsKey, newMonster.id).catch((error) => {
-        logger.error('Create sprite sheet', error)
-      })
-
       return newMonster
     } catch (err: unknown) {
       logger.error('Create monster error', err)

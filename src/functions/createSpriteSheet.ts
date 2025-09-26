@@ -6,6 +6,8 @@ import { SelectedPartsKey } from '../modules/monster/dto/monster.args'
 import * as gameDb from 'game-db'
 import config from '../config'
 import { v4 as uuidv4 } from 'uuid'
+import { loadAtlasJson, loadSpriteSheetBuffer } from './SpriteSheetBuffer'
+import { EntityManager } from 'typeorm'
 
 export async function createCustomSpriteSheet({
   atlasJson,
@@ -232,14 +234,6 @@ export async function createCustomSpriteSheet({
   })
   const imageId = uuidv4()
 
-  await gameDb.Entities.File.create({
-    id: imageId,
-    monsterId: monsterId,
-    fileType: gameDb.datatypes.FileTypeEnum.IMAGE,
-    contentType: gameDb.datatypes.ContentTypeEnum.SPRITE_SHEET_MONSTER,
-    url: `${imageId}.png`,
-  }).save()
-
   const atlasJsonData = {
     frames: atlasFrames,
     meta: {
@@ -258,50 +252,14 @@ export async function createCustomSpriteSheet({
     fs.promises.writeFile(atlasPath, JSON.stringify(atlasJsonData, null, 2)),
   ])
 
-  await gameDb.Entities.File.create({
-    id: atlasId,
-    monsterId: monsterId,
-    fileType: gameDb.datatypes.FileTypeEnum.JSON,
-    contentType: gameDb.datatypes.ContentTypeEnum.SPRITE_SHEET_MONSTER,
-    url: `${atlasId}.json`,
-  }).save()
+  return { imageId, atlasId }
 }
 
-interface GlobalCache {
-  atlasJsonParsed: SpriteAtlas | null
-  spriteSheetBuffer: Buffer | null
-  lastLoaded: Date | null
-}
-
-const globalCache: GlobalCache = {
-  atlasJsonParsed: null,
-  spriteSheetBuffer: null,
-  lastLoaded: null,
-}
-
-function loadAtlasJson(atlasJsonFile: string): SpriteAtlas {
-  if (!globalCache.atlasJsonParsed) {
-    const content = fs.readFileSync(atlasJsonFile, 'utf-8')
-    globalCache.atlasJsonParsed = JSON.parse(content) as SpriteAtlas
-    globalCache.lastLoaded = new Date()
-  }
-  if (!globalCache.atlasJsonParsed) {
-    throw new Error('Atlas JSON is not loaded')
-  }
-  return globalCache.atlasJsonParsed
-}
-
-function loadSpriteSheetBuffer(spriteSheetFile: string): Buffer {
-  if (!globalCache.spriteSheetBuffer) {
-    globalCache.spriteSheetBuffer = fs.readFileSync(spriteSheetFile)
-  }
-  if (!globalCache.spriteSheetBuffer) {
-    throw new Error('SpriteSheet buffer is not loaded')
-  }
-  return globalCache.spriteSheetBuffer
-}
-
-export const createSpriteSheetMonster = async (selectedPartsKey: SelectedPartsKey, monsterId: string) => {
+export const createSpriteSheetMonster = async (
+  selectedPartsKey: SelectedPartsKey,
+  monsterId: string,
+  manager: EntityManager,
+) => {
   const files = await gameDb.Entities.File.find({
     where: { contentType: gameDb.datatypes.ContentTypeEnum.MAIN_SPRITE_SHEET_MONSTERS },
   })
@@ -334,12 +292,32 @@ export const createSpriteSheetMonster = async (selectedPartsKey: SelectedPartsKe
   const atlasJsonParsed = loadAtlasJson(atlasJsonFile)
   const spriteSheetBuffer = loadSpriteSheetBuffer(spriteSheetFile)
 
-  await createCustomSpriteSheet({
+  const { imageId, atlasId } = await createCustomSpriteSheet({
     atlasJson: atlasJsonParsed,
     spriteSheetBuffer: spriteSheetBuffer,
     selectedPartsKey,
     monsterId: monsterId,
   })
+
+  await manager.save(
+    gameDb.Entities.File.create({
+      id: imageId,
+      monsterId: monsterId,
+      fileType: gameDb.datatypes.FileTypeEnum.IMAGE,
+      contentType: gameDb.datatypes.ContentTypeEnum.SPRITE_SHEET_MONSTER,
+      url: `${imageId}.png`,
+    }),
+  )
+
+  await manager.save(
+    gameDb.Entities.File.create({
+      id: atlasId,
+      monsterId: monsterId,
+      fileType: gameDb.datatypes.FileTypeEnum.JSON,
+      contentType: gameDb.datatypes.ContentTypeEnum.SPRITE_SHEET_MONSTER,
+      url: `${atlasId}.json`,
+    }),
+  )
 
   return false
 }

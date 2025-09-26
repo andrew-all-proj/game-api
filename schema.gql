@@ -231,7 +231,7 @@ type Mutation {
   MonsterApplyMutagen(monsterId: String!, userInventoryId: String!): MonsterApplyMutagen!
   MonsterApplySkill(monsterId: String!, replacedSkillId: String, userInventoryId: String!): CommonResponse!
   MonsterBattleUpdate(id: String!, status: BattleStatusEnum): MonsterBattles!
-  MonsterCreate(fileId: String!, name: String, selectedPartsKey: SelectedPartsKey!, userId: String): Monster!
+  MonsterCreate(name: String, selectedPartsKey: SelectedPartsKey!, userId: String): Monster!
   MonsterFeed(monsterId: String!, quantity: Float, userInventoryId: String!): CommonResponse!
   MonsterRemove(id: String!, userId: String): CommonResponse!
   MonsterUpdate(id: String!, isSelected: Boolean, name: String, userId: String): Monster!
