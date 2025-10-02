@@ -109,7 +109,7 @@ export class UserService {
 
   async create(args: UserCreateArgs): Promise<User> {
     try {
-      const user = await gameDb.Entities.User.create({ ...args }).save()
+      const user = await gameDb.Entities.User.create({ ...args, energy: 1000 }).save()
       logger.info(`Create new user: ${user.id}`)
       return Object.assign(new User(), user)
     } catch (err) {
