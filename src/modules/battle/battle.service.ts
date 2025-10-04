@@ -14,6 +14,7 @@ import {
 } from '../../config/battle'
 import { BattleAttackService } from './battle-attack.service'
 import { BattleCompletedService } from './battle-completed.service'
+import { logger } from 'src/functions/logger'
 
 @Injectable()
 export class BattleService {
@@ -49,6 +50,7 @@ export class BattleService {
       })
 
       if (!battle) {
+        logger.error('Did not create battle in redis (battle created in bot)')
         return null
       }
 

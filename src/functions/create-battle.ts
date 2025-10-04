@@ -60,6 +60,9 @@ export async function createBattleToRedis({
   }
 
   if (!opponentMonster?.healthPoints || !challengerMonster?.healthPoints) {
+    logger.error(
+      `HP null: ${opponentMonster?.id}: ${opponentMonster?.healthPoints}, ${challengerMonster?.id}: ${challengerMonster?.healthPoints}`,
+    )
     gameDb.Entities.MonsterBattles.update(
       { id: battleId },
       {
@@ -176,6 +179,7 @@ export async function createBattle({
         challengerSocketId: challenger?.socketId,
       }
     } else {
+      logger.error('Dont have battle in redis')
       existingBattle.status = gameDb.datatypes.BattleStatusEnum.REJECTED
       await existingBattle.save()
     }
