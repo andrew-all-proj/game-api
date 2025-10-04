@@ -213,6 +213,10 @@ export async function createBattle({
     chatId: newBattle.chatId,
   })
 
+  if (!battleRedis) {
+    logger.info('Battle did not create in Redis')
+  }
+
   return {
     result: battleRedis,
     battleId: newBattle.id,
