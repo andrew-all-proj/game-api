@@ -98,8 +98,6 @@ export interface BattleRedis {
   lastActionLog?: LastActionLog
   logs?: gameDb.datatypes.BattleLog[]
 
-  challengerSocketId: string
-  opponentSocketId: string
   challengerReady: boolean
   opponentReady: boolean
   winnerMonsterId?: string

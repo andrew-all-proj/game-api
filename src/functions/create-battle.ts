@@ -1,13 +1,11 @@
 import { Redis } from 'ioredis'
 import * as gameDb from 'game-db'
-import { In } from 'typeorm'
-import { getMonsterById } from './redis/get-monster-by-id'
 import { BattleRedis } from '../datatypes/common/BattleRedis'
 import { logger } from './logger'
 import { v4 as uuidv4 } from 'uuid'
 import { DEFAULT_TURN_MS, DEFAULT_GRACE_MS, SATIETY_COST, TTL_BATTLE } from '../config/battle'
 
-interface CreateBattleArgs {
+export interface CreateBattleArgs {
   redisClient: Redis
   opponentMonsterId: string
   challengerMonsterId: string
@@ -16,23 +14,17 @@ interface CreateBattleArgs {
 interface CreateBattle {
   result: boolean
   battleId: string | null
-  opponentSocketId: string | null
-  challengerSocketId: string | null
 }
 
 interface CreateBattleToRedisArgs {
   redisClient: Redis
   newBattle: gameDb.Entities.MonsterBattles
-  opponentSocketId: string | null
-  challengerSocketId: string | null
   chatId?: string
 }
 
 export async function createBattleToRedis({
   redisClient,
   newBattle,
-  opponentSocketId,
-  challengerSocketId,
   chatId,
 }: CreateBattleToRedisArgs): Promise<boolean> {
   const { id: battleId, opponentMonsterId, challengerMonsterId } = newBattle
@@ -119,9 +111,6 @@ export async function createBattleToRedis({
     lastActionLog: undefined,
     logs: [],
 
-    challengerSocketId: challengerSocketId ?? '',
-    opponentSocketId: opponentSocketId ?? '',
-
     challengerReady: false,
     opponentReady: false,
 
@@ -150,49 +139,12 @@ export async function createBattle({
   opponentMonsterId,
   challengerMonsterId,
 }: CreateBattleArgs): Promise<CreateBattle> {
-  const opponent = await getMonsterById(redisClient, opponentMonsterId)
-  const challenger = await getMonsterById(redisClient, challengerMonsterId)
-
-  if (!opponent?.socketId || !challenger?.socketId)
-    return {
-      result: false,
-      battleId: null,
-      opponentSocketId: opponent?.socketId ?? null,
-      challengerSocketId: challenger?.socketId ?? null,
-    }
-
-  const existingBattle = await gameDb.Entities.MonsterBattles.findOne({
-    where: {
-      challengerMonsterId,
-      opponentMonsterId,
-      status: In([gameDb.datatypes.BattleStatusEnum.PENDING, gameDb.datatypes.BattleStatusEnum.ACCEPTED]),
-    },
-  })
-
-  if (existingBattle) {
-    const redisData = await redisClient.hgetall(`battle:${existingBattle.id}`)
-    if (redisData && Object.keys(redisData).length > 0) {
-      return {
-        battleId: existingBattle.id,
-        result: true,
-        opponentSocketId: opponent?.socketId,
-        challengerSocketId: challenger?.socketId,
-      }
-    } else {
-      logger.error('Dont have battle in redis')
-      existingBattle.status = gameDb.datatypes.BattleStatusEnum.REJECTED
-      await existingBattle.save()
-    }
-  }
-
   const opponentMonsterUserEnergyAndSatiety = await checkEnergyAndSatiety(opponentMonsterId)
   const challengerMonsterUserEnergyAndSatiety = await checkEnergyAndSatiety(challengerMonsterId)
   if (!opponentMonsterUserEnergyAndSatiety || !challengerMonsterUserEnergyAndSatiety) {
     return {
       result: false,
       battleId: null,
-      opponentSocketId: opponent?.socketId ?? null,
-      challengerSocketId: challenger?.socketId ?? null,
     }
   }
 
@@ -208,8 +160,6 @@ export async function createBattle({
   const battleRedis = await createBattleToRedis({
     redisClient,
     newBattle,
-    opponentSocketId: opponent?.socketId,
-    challengerSocketId: challenger?.socketId,
     chatId: newBattle.chatId,
   })
 
@@ -220,7 +170,5 @@ export async function createBattle({
   return {
     result: battleRedis,
     battleId: newBattle.id,
-    opponentSocketId: opponent?.socketId,
-    challengerSocketId: challenger?.socketId,
   }
 }

@@ -14,7 +14,6 @@ import { JwtService } from '@nestjs/jwt'
 import { authenticateWebSocketClient } from '../../functions/ws/authenticate-client'
 import { logger } from '../../functions/logger'
 import { BattleAttackService } from './battle-attack.service'
-import { BattleCompletedService } from './battle-completed.service'
 
 @WebSocketGateway({ cors: { origin: '*' } })
 export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatewayInit {
@@ -58,8 +57,7 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
       return this.server.to(client.id).emit('responseBattle', { rejected: true })
     }
 
-    this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
-    this.server.to(battle.opponentSocketId).emit('responseBattle', battle)
+    this.server.to(client.id).emit('responseBattle', battle)
   }
 
   @SubscribeMessage('startBattle')
@@ -75,8 +73,15 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
       return this.server.to(client.id).emit('responseBattle', { rejected: true })
     }
 
-    this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
-    this.server.to(battle.opponentSocketId).emit('responseBattle', battle)
+    const challengerSocketId = await this.battleService.getUserSocketId(battle.challengerUserId)
+    if (challengerSocketId) {
+      this.server.to(challengerSocketId).emit('responseBattle', battle)
+    }
+
+    const opponentSocketId = await this.battleService.getUserSocketId(battle.opponentUserId)
+    if (opponentSocketId) {
+      this.server.to(opponentSocketId).emit('responseBattle', battle)
+    }
   }
 
   @SubscribeMessage('attack')
@@ -102,8 +107,15 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
       return this.server.to(client.id).emit('responseBattle', { rejected: true })
     }
 
-    this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
-    this.server.to(battle.opponentSocketId).emit('responseBattle', battle)
+    const challengerSocketId = await this.battleService.getUserSocketId(battle.challengerUserId)
+    if (challengerSocketId) {
+      this.server.to(challengerSocketId).emit('responseBattle', battle)
+    }
+
+    const opponentSocketId = await this.battleService.getUserSocketId(battle.opponentUserId)
+    if (opponentSocketId) {
+      this.server.to(opponentSocketId).emit('responseBattle', battle)
+    }
   }
 
   @SubscribeMessage('statusBattle')
@@ -116,7 +128,14 @@ export class Battle implements OnGatewayConnection, OnGatewayDisconnect, OnGatew
       return this.server.to(client.id).emit('responseBattle', { rejected: true })
     }
 
-    this.server.to(battle.challengerSocketId).emit('responseBattle', battle)
-    this.server.to(battle.opponentSocketId).emit('responseBattle', battle)
+    const challengerSocketId = await this.battleService.getUserSocketId(battle.challengerUserId)
+    if (challengerSocketId) {
+      this.server.to(challengerSocketId).emit('responseBattle', battle)
+    }
+
+    const opponentSocketId = await this.battleService.getUserSocketId(battle.opponentUserId)
+    if (opponentSocketId) {
+      this.server.to(opponentSocketId).emit('responseBattle', battle)
+    }
   }
 }
