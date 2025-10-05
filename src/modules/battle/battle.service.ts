@@ -35,32 +35,10 @@ export class BattleService {
 
     let battleStr = await this.redisClient.get(key)
     if (!battleStr) {
+      this.rejectBattle(battleId)
       logger.error('Battle not foun in redis')
       return null
     }
-    // if (!battleStr) {
-    //   // CREATE BATTLE if has in db (if battle created in bot)
-    //   const battleDb = await gameDb.Entities.MonsterBattles.findOne({
-    //     where: { id: battleId, status: gameDb.datatypes.BattleStatusEnum.ACCEPTED },
-    //   })
-    //   if (!battleDb) return null
-
-    //   const battle = await createBattleToRedis({
-    //     redisClient: this.redisClient,
-    //     newBattle: battleDb,
-    //     challengerSocketId: battleDb.challengerMonsterId === monsterId ? socketId : '',
-    //     opponentSocketId: battleDb.opponentMonsterId === monsterId ? socketId : '',
-    //     chatId: battleDb.chatId,
-    //   })
-
-    //   if (!battle) {
-    //     logger.error('Did not create battle in redis (battle created in bot)')
-    //     return null
-    //   }
-
-    //   battleStr = await this.redisClient.get(key)
-    //   if (!battleStr) return null
-    // }
 
     const battle: BattleRedis = JSON.parse(battleStr) as BattleRedis
 
@@ -190,8 +168,8 @@ export class BattleService {
     return battle
   }
 
-  async createBattle(opponentMonsterId: string, challengerMonsterId: string): Promise<string | null> {
-    const battle = await createBattle({ redisClient: this.redisClient, opponentMonsterId, challengerMonsterId })
+  async createBattle(opponentMonsterId: string, challengerMonsterId: string, chatId?: string): Promise<string | null> {
+    const battle = await createBattle({ redisClient: this.redisClient, opponentMonsterId, challengerMonsterId, chatId })
 
     return battle.battleId
   }

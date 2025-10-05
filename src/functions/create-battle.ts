@@ -9,6 +9,7 @@ export interface CreateBattleArgs {
   redisClient: Redis
   opponentMonsterId: string
   challengerMonsterId: string
+  chatId?: string
 }
 
 interface CreateBattle {
@@ -138,6 +139,7 @@ export async function createBattle({
   redisClient,
   opponentMonsterId,
   challengerMonsterId,
+  chatId,
 }: CreateBattleArgs): Promise<CreateBattle> {
   const opponentMonsterUserEnergyAndSatiety = await checkEnergyAndSatiety(opponentMonsterId)
   const challengerMonsterUserEnergyAndSatiety = await checkEnergyAndSatiety(challengerMonsterId)
@@ -153,6 +155,7 @@ export async function createBattle({
     challengerMonsterId,
     opponentMonsterId,
     status: gameDb.datatypes.BattleStatusEnum.PENDING,
+    chatId: chatId,
   })
 
   await newBattle.save()

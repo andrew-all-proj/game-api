@@ -8,6 +8,8 @@ import { extractSelectedFieldsAndRelations } from '../../functions/extract-selec
 import { MonsterBattles, MonsterBattlesList } from './entities/monster-battles'
 import { MonsterBattlesArgs, MonsterBattlesListArgs, MonsterBattlesUpdateArgs } from './dto/monster-battles.args'
 
+const EXPIRE_MINUTES = 5
+
 @Injectable()
 export class MonsterBattlesService {
   constructor() {}
@@ -33,15 +35,23 @@ export class MonsterBattlesService {
 
   async findOne(args: MonsterBattlesArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<MonsterBattles> {
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.MonsterBattles)
-    const monster = await gameDb.Entities.MonsterBattles.findOne({
+    const monsterBattle = await gameDb.Entities.MonsterBattles.findOne({
       where: { id: args.id },
       relations: relations,
       select: selectedFields,
     })
-    if (!monster) {
+    if (!monsterBattle) {
       throw new BadRequestException('Monster battles not found')
     }
-    return monster
+    const expiredBefore = new Date(Date.now() - EXPIRE_MINUTES * 60_000)
+    if (
+      monsterBattle.status === gameDb.datatypes.BattleStatusEnum.PENDING &&
+      monsterBattle.updatedAt <= expiredBefore
+    ) {
+      monsterBattle.status = gameDb.datatypes.BattleStatusEnum.REJECTED
+      await monsterBattle.save()
+    }
+    return monsterBattle
   }
 
   async update(args: MonsterBattlesUpdateArgs, info: GraphQLResolveInfo): Promise<MonsterBattles> {

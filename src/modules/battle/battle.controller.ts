@@ -10,7 +10,7 @@ export class BattleController {
   @Post('create-battle')
   @UseGuards(InternalJwtAuthGuard)
   async createBattle(@Body() dto: CreateBattleDto): Promise<{ id: string | null }> {
-    const id = await this.battleService.createBattle(dto.opponentMonsterId, dto.challengerMonsterId)
+    const id = await this.battleService.createBattle(dto.opponentMonsterId, dto.challengerMonsterId, dto.chatId)
     return { id }
   }
 }
