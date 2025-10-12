@@ -2,7 +2,7 @@ name: Build & Push (GHCR, private)
 
 on:
   push:
-    branches: ['master']
+    branches: ['master', 'testing']
     tags: ['v*']
   workflow_dispatch:
 
@@ -27,7 +27,8 @@ jobs:
         with:
           images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
           tags: |
-            type=raw,value=latest,enable={{is_default_branch}}
+            type=raw,value=latest,enable=${{ github.ref_name == 'master' }}
+            type=raw,value=test,enable=${{ github.ref_name == 'testing' }}
             type=sha
             type=ref,event=tag
 
