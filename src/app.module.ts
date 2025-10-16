@@ -17,13 +17,15 @@ import { WinstonModule } from 'nest-winston'
 import { createWinstonLogger } from './config/winston'
 import { logger } from './functions/logger'
 import { UserInventoryModule } from './modules/user-inventory/user-inventory.module'
+import { PlaygroundController } from './playground.controller'
 
 interface AuthenticatedRequest extends Request {
-  user?: {
-    id: string
-    role: string
-  }
+  user?: { id: string; role: string }
 }
+
+const isProd = process.env.NODE_ENV === 'production'
+const allowIntrospection = !isProd || process.env.GQL_INTROSPECTION === 'true'
+const allowPlayground = !isProd || process.env.GQL_PLAYGROUND === 'true'
 
 @Module({
   imports: [
@@ -37,16 +39,21 @@ interface AuthenticatedRequest extends Request {
     UploadModule,
     UserInventoryModule,
     WinstonModule.forRoot(createWinstonLogger()),
+
     GraphQLModule.forRoot<ApolloDriverConfig>({
       driver: ApolloDriver,
+      path: '/graphql',
       autoSchemaFile: 'schema.gql',
-      playground: false,
       sortSchema: true,
+
+      introspection: allowIntrospection,
+      playground: false,
+      plugins: allowPlayground ? [ApolloServerPluginLandingPageLocalDefault({ embed: true })] : [],
+
       context: ({ req }: { req: AuthenticatedRequest }) => {
         const user = req.user
         return { user, req }
       },
-      plugins: [ApolloServerPluginLandingPageLocalDefault({ embed: true })],
 
       formatError: (error) => {
         logger.error('GraphQL Error', {
@@ -58,8 +65,8 @@ interface AuthenticatedRequest extends Request {
       },
     }),
   ],
-  exports: [WinstonModule],
-  controllers: [AppController],
+  controllers: [AppController, PlaygroundController],
   providers: [AppService],
+  exports: [WinstonModule],
 })
 export class AppModule {}
