@@ -14,14 +14,16 @@ import {
   MonsterUpdateArgs,
 } from './dto/monster.args'
 import { Monster, MonstersList } from './entities/monster'
-import { createSpriteSheetMonster } from '../../functions/createSpriteSheet'
+import { createSpriteSheetMonster } from './functions/createSpriteSheet'
 import { logger } from '../../functions/logger'
 import { costToCreateMonster, monsterStartingStats } from '../../config/monster-starting-stats'
-import { createAvatarMonster } from 'src/functions/createAvatarMonster'
+import { createAvatarMonster } from './functions/createAvatarMonster'
+import { S3Service } from '../upload-file/s3.service'
+import config from 'src/config'
 
 @Injectable()
 export class MonsterService {
-  constructor() {}
+  constructor(private readonly s3Service: S3Service) {}
 
   async create(args: MonsterCreateArgs, ctx: GraphQLContext): Promise<Monster> {
     const role = ctx.req.user?.role
@@ -69,8 +71,26 @@ export class MonsterService {
           .map((s) => manager.create(gameDb.Entities.MonsterDefenses, { skillId: s.id, monsterId: monster.id }))
         await manager.save(defenses)
 
-        await createAvatarMonster(args.selectedPartsKey, monster.id, manager)
-        await createSpriteSheetMonster(args.selectedPartsKey, monster.id, manager)
+        const createdAvatrMonster = await createAvatarMonster(args.selectedPartsKey, monster.id, manager)
+        const createdSpriteSheetMonster = await createSpriteSheetMonster(args.selectedPartsKey, monster.id, manager)
+
+        await this.s3Service.upload({
+          key: createdAvatrMonster.url,
+          buffer: createdAvatrMonster.pngBuffer,
+          contentType: 'image/png',
+        })
+
+        await this.s3Service.upload({
+          key: createdSpriteSheetMonster.imageUrl,
+          buffer: createdSpriteSheetMonster.pngBuffer,
+          contentType: 'image/png',
+        })
+
+        await this.s3Service.upload({
+          key: createdSpriteSheetMonster.atlasUrl,
+          buffer: createdSpriteSheetMonster.atlasJsonBuffer,
+          contentType: 'image/png',
+        })
 
         return monster
       })

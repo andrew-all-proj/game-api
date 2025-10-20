@@ -3,9 +3,8 @@ import * as sharp from 'sharp'
 import { FrameData, SpriteAtlas } from 'src/datatypes/common/SpriteAtlas'
 import { SelectedPartsKey } from 'src/modules/monster/dto/monster.args'
 import * as gameDb from 'game-db'
-import config from 'src/config'
-import { loadAtlasJson, loadSpriteSheetBuffer } from './SpriteSheetBuffer'
-import * as fs from 'fs'
+import config from '../../../config'
+import { loadSpriteSheetBufferFromUrl, loadAtlasJsonFromUrl } from './SpriteSheetBuffer'
 import { v4 as uuidv4 } from 'uuid'
 import { EntityManager } from 'typeorm'
 
@@ -50,7 +49,7 @@ export async function renderMonsterAvatarPNG({
     bodyY?: number // по умолчанию 145 (как на фронте)
     baseScale?: number // по умолчанию 0.16 (как на фронте)
   }
-}): Promise<{ png: Buffer; width: number; height: number }> {
+}): Promise<{ pngBuffer: Buffer; width: number; height: number }> {
   const frames = atlasJson.frames
   if (!frames) throw new Error('Atlas frames not found')
 
@@ -170,8 +169,8 @@ export async function renderMonsterAvatarPNG({
     },
   })
 
-  const png = await canvas.composite(layers).png().toBuffer()
-  return { png, width: outW, height: outH }
+  const pngBuffer = await canvas.composite(layers).png().toBuffer()
+  return { pngBuffer, width: outW, height: outH }
 }
 
 export const createAvatarMonster = async (
@@ -179,7 +178,7 @@ export const createAvatarMonster = async (
   monsterId: string,
   manager: EntityManager,
   options?: AvatarOptions,
-): Promise<{ fileId: string; url: string }> => {
+): Promise<{ fileId: string; url: string; pngBuffer: Buffer }> => {
   const files = await gameDb.Entities.File.find({
     where: { contentType: gameDb.datatypes.ContentTypeEnum.MAIN_SPRITE_SHEET_MONSTERS },
   })
@@ -202,13 +201,10 @@ export const createAvatarMonster = async (
     throw new BadRequestException('Invalid MAIN_SPRITE_SHEET_MONSTERS entries')
   }
 
-  const atlasJsonFile = `${config.fileUploadDir}/${atlasJson.url}`
-  const spriteSheetFile = `${config.fileUploadDir}/${spriteSheet.url}`
+  const atlasJsonParsed = await loadAtlasJsonFromUrl(atlasJson.url)
+  const spriteSheetBuffer = await loadSpriteSheetBufferFromUrl(spriteSheet.url)
 
-  const atlasJsonParsed = loadAtlasJson(atlasJsonFile)
-  const spriteSheetBuffer = loadSpriteSheetBuffer(spriteSheetFile)
-
-  const { png } = await renderMonsterAvatarPNG({
+  const { pngBuffer } = await renderMonsterAvatarPNG({
     atlasJson: atlasJsonParsed,
     spriteSheetBuffer,
     selectedPartsKey,
@@ -216,18 +212,17 @@ export const createAvatarMonster = async (
   })
 
   const imageId = uuidv4()
-  const filePath = `${config.fileUploadDir}/${imageId}.png`
-  await fs.promises.writeFile(filePath, png)
 
+  const url = `${config.s3.prefix}/${imageId}.png`
   await manager.save(
     gameDb.Entities.File.create({
       id: imageId,
       monsterId,
       fileType: gameDb.datatypes.FileTypeEnum.IMAGE,
       contentType: gameDb.datatypes.ContentTypeEnum.AVATAR_MONSTER,
-      url: `${imageId}.png`,
+      url,
     }),
   )
 
-  return { fileId: imageId, url: `${imageId}.png` }
+  return { fileId: imageId, url, pngBuffer }
 }

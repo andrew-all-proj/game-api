@@ -1,25 +1,28 @@
-import * as fs from 'fs'
 import * as sharp from 'sharp'
-import { FrameData, SpriteAtlas } from '../datatypes/common/SpriteAtlas'
+import { FrameData, SpriteAtlas } from '../../../datatypes/common/SpriteAtlas'
 import { BadRequestException } from '@nestjs/common'
-import { SelectedPartsKey } from '../modules/monster/dto/monster.args'
+import { SelectedPartsKey } from '../../monster/dto/monster.args'
 import * as gameDb from 'game-db'
-import config from '../config'
+import config from '../../../config'
 import { v4 as uuidv4 } from 'uuid'
-import { loadAtlasJson, loadSpriteSheetBuffer } from './SpriteSheetBuffer'
+import { loadSpriteSheetBufferFromUrl, loadAtlasJsonFromUrl } from './SpriteSheetBuffer'
 import { EntityManager } from 'typeorm'
 
 export async function createCustomSpriteSheet({
   atlasJson,
   spriteSheetBuffer,
   selectedPartsKey,
-  monsterId,
 }: {
   atlasJson: SpriteAtlas
   spriteSheetBuffer: Buffer
   selectedPartsKey: SelectedPartsKey
   monsterId: string
-}) {
+}): Promise<{
+  imageId: string
+  atlasId: string
+  pngBuffer: Buffer
+  atlasJsonBuffer: Buffer
+}> {
   // filter parts
   const framesToInclude = Object.entries(atlasJson.frames).filter(
     ([key]) =>
@@ -221,7 +224,7 @@ export async function createCustomSpriteSheet({
   }
 
   if (totalWidth === 0 || totalHeight === 0) {
-    throw new Error(`❌ totalWidth (${totalWidth}) or totalHeight (${totalHeight}) is zero! Check frame calculations.`)
+    throw new Error(`totalWidth (${totalWidth}) or totalHeight (${totalHeight}) is zero! Check frame calculations.`)
   }
 
   const finalImage = sharp({
@@ -232,7 +235,9 @@ export async function createCustomSpriteSheet({
       background: { r: 0, g: 0, b: 0, alpha: 0 },
     },
   })
+
   const imageId = uuidv4()
+  const atlasId = uuidv4()
 
   const atlasJsonData = {
     frames: atlasFrames,
@@ -244,80 +249,86 @@ export async function createCustomSpriteSheet({
     },
   }
 
-  const atlasId = uuidv4()
-  const atlasPath = `${config.fileUploadDir}/${atlasId}.json`
+  const [pngBuffer] = await Promise.all([finalImage.composite(layers).png().toBuffer()])
 
-  await Promise.all([
-    finalImage.composite(layers).png().toFile(`${config.fileUploadDir}/${imageId}.png`),
-    fs.promises.writeFile(atlasPath, JSON.stringify(atlasJsonData, null, 2)),
-  ])
+  const atlasJsonBuffer = Buffer.from(JSON.stringify(atlasJsonData, null, 2), 'utf8')
 
-  return { imageId, atlasId }
+  return { imageId, atlasId, pngBuffer, atlasJsonBuffer }
 }
 
 export const createSpriteSheetMonster = async (
   selectedPartsKey: SelectedPartsKey,
   monsterId: string,
   manager: EntityManager,
-) => {
+): Promise<{
+  fileId: string
+  pngBuffer: Buffer
+  atlasId: string
+  atlasJsonBuffer: Buffer
+  imageUrl: string
+  atlasUrl: string
+}> => {
   const files = await gameDb.Entities.File.find({
     where: { contentType: gameDb.datatypes.ContentTypeEnum.MAIN_SPRITE_SHEET_MONSTERS },
   })
 
-  if (files.length === 0) {
-    throw new BadRequestException('Sprite sheet not found')
-  }
+  if (files.length === 0) throw new BadRequestException('Sprite sheet not found')
 
-  // JSON max version
-  const jsonFiles = files.filter((file) => file.fileType === gameDb.datatypes.FileTypeEnum.JSON)
-  const atlasJson =
+  const jsonFiles = files.filter((f) => f.fileType === gameDb.datatypes.FileTypeEnum.JSON)
+  const atlasJsonFileMeta =
     jsonFiles.length === 1
       ? jsonFiles[0]
-      : jsonFiles.reduce((max, item) => ((item.version ?? 0) > (max.version ?? 0) ? item : max))
+      : jsonFiles.reduce((max, it) => ((it.version ?? 0) > (max.version ?? 0) ? it : max))
 
-  // IMAGE max version
-  const imageFiles = files.filter((file) => file.fileType === gameDb.datatypes.FileTypeEnum.IMAGE)
-  const spriteSheet =
+  const imageFiles = files.filter((f) => f.fileType === gameDb.datatypes.FileTypeEnum.IMAGE)
+  const spriteSheetMeta =
     imageFiles.length === 1
       ? imageFiles[0]
-      : imageFiles.reduce((max, item) => ((item.version ?? 0) > (max.version ?? 0) ? item : max))
+      : imageFiles.reduce((max, it) => ((it.version ?? 0) > (max.version ?? 0) ? it : max))
 
-  if (!atlasJson || !atlasJson.id || !spriteSheet || !spriteSheet.id) {
-    return false
+  if (!atlasJsonFileMeta?.id || !spriteSheetMeta?.id) {
+    throw new BadRequestException('Invalid MAIN_SPRITE_SHEET_MONSTERS entries')
   }
 
-  const atlasJsonFile = `${config.fileUploadDir}/${atlasJson.url}`
-  const spriteSheetFile = `${config.fileUploadDir}/${spriteSheet.url}`
+  const atlasJsonParsed = await loadAtlasJsonFromUrl(`${atlasJsonFileMeta.url}`)
+  const spriteSheetBuffer = await loadSpriteSheetBufferFromUrl(`${spriteSheetMeta.url}`)
 
-  const atlasJsonParsed = loadAtlasJson(atlasJsonFile)
-  const spriteSheetBuffer = loadSpriteSheetBuffer(spriteSheetFile)
-
-  const { imageId, atlasId } = await createCustomSpriteSheet({
+  const { imageId, atlasId, pngBuffer, atlasJsonBuffer } = await createCustomSpriteSheet({
     atlasJson: atlasJsonParsed,
-    spriteSheetBuffer: spriteSheetBuffer,
+    spriteSheetBuffer,
     selectedPartsKey,
-    monsterId: monsterId,
+    monsterId,
   })
+
+  const imageUrl = `${config.s3.prefix}/${imageId}.png`
+  const atlasUrl = `${config.s3.prefix}/${atlasId}.json`
 
   await manager.save(
     gameDb.Entities.File.create({
       id: imageId,
-      monsterId: monsterId,
+      monsterId,
       fileType: gameDb.datatypes.FileTypeEnum.IMAGE,
       contentType: gameDb.datatypes.ContentTypeEnum.SPRITE_SHEET_MONSTER,
-      url: `${imageId}.png`,
+      url: imageUrl,
     }),
   )
 
   await manager.save(
     gameDb.Entities.File.create({
       id: atlasId,
-      monsterId: monsterId,
+      monsterId,
       fileType: gameDb.datatypes.FileTypeEnum.JSON,
       contentType: gameDb.datatypes.ContentTypeEnum.SPRITE_SHEET_MONSTER,
-      url: `${atlasId}.json`,
+      url: atlasUrl,
     }),
   )
 
-  return false
+  return {
+    fileId: imageId,
+    pngBuffer,
+    atlasId,
+    atlasJsonBuffer,
+    imageUrl,
+    atlasUrl,
+  }
 }
