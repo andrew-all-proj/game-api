@@ -1,12 +1,11 @@
 import * as sharp from 'sharp'
 import { FrameData, SpriteAtlas } from '../../../datatypes/common/SpriteAtlas'
-import { BadRequestException } from '@nestjs/common'
 import { SelectedPartsKey } from '../../monster/dto/monster.args'
 import * as gameDb from 'game-db'
 import config from '../../../config'
 import { v4 as uuidv4 } from 'uuid'
-import { loadSpriteSheetBufferFromUrl, loadAtlasJsonFromUrl } from './SpriteSheetBuffer'
 import { EntityManager } from 'typeorm'
+import { loadSpriteAssets } from '../../file/load-sprite-assets'
 
 export async function createCustomSpriteSheet({
   atlasJson,
@@ -268,34 +267,11 @@ export const createSpriteSheetMonster = async (
   imageUrl: string
   atlasUrl: string
 }> => {
-  const files = await gameDb.Entities.File.find({
-    where: { contentType: gameDb.datatypes.ContentTypeEnum.MAIN_SPRITE_SHEET_MONSTERS },
-  })
-
-  if (files.length === 0) throw new BadRequestException('Sprite sheet not found')
-
-  const jsonFiles = files.filter((f) => f.fileType === gameDb.datatypes.FileTypeEnum.JSON)
-  const atlasJsonFileMeta =
-    jsonFiles.length === 1
-      ? jsonFiles[0]
-      : jsonFiles.reduce((max, it) => ((it.version ?? 0) > (max.version ?? 0) ? it : max))
-
-  const imageFiles = files.filter((f) => f.fileType === gameDb.datatypes.FileTypeEnum.IMAGE)
-  const spriteSheetMeta =
-    imageFiles.length === 1
-      ? imageFiles[0]
-      : imageFiles.reduce((max, it) => ((it.version ?? 0) > (max.version ?? 0) ? it : max))
-
-  if (!atlasJsonFileMeta?.id || !spriteSheetMeta?.id) {
-    throw new BadRequestException('Invalid MAIN_SPRITE_SHEET_MONSTERS entries')
-  }
-
-  const atlasJsonParsed = await loadAtlasJsonFromUrl(`${atlasJsonFileMeta.url}`)
-  const spriteSheetBuffer = await loadSpriteSheetBufferFromUrl(`${spriteSheetMeta.url}`)
+  const { atlasJson, spriteSheet } = await loadSpriteAssets(gameDb.datatypes.ContentTypeEnum.MAIN_SPRITE_SHEET_MONSTERS)
 
   const { imageId, atlasId, pngBuffer, atlasJsonBuffer } = await createCustomSpriteSheet({
-    atlasJson: atlasJsonParsed,
-    spriteSheetBuffer,
+    atlasJson: atlasJson,
+    spriteSheetBuffer: spriteSheet,
     selectedPartsKey,
     monsterId,
   })

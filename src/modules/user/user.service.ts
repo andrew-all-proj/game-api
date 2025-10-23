@@ -14,6 +14,9 @@ import { extractSelectedFieldsAndRelations } from '../../functions/extract-selec
 import { logger } from '../../functions/logger'
 import { calculateAndSaveEnergy } from '../../functions/ calculate-and-save-energy'
 import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
+import { createAvatar } from './functions/create-avatar'
+import { S3Service } from '../upload-file/s3.service'
+import { EntityManager } from 'typeorm'
 
 interface TelegramUser {
   id: number | string
@@ -24,7 +27,10 @@ interface TelegramUser {
 
 @Injectable()
 export class UserService {
-  constructor(private jwtService: JwtService) {}
+  constructor(
+    private jwtService: JwtService,
+    private readonly s3Service: S3Service,
+  ) {}
 
   async login(args: UserLoginArgs): Promise<UserLogin> {
     let user: gameDb.Entities.User | null
@@ -166,27 +172,51 @@ export class UserService {
 
   async update(args: UserUpdateArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<User> {
     const userIdToUpdate = resolveUserIdByRole(ctx.req.user?.role, ctx, args.id)
-
     if (!userIdToUpdate) {
       throw new BadRequestException('User id not found')
     }
 
-    const { id: _ignored, ...updateData } = args
-    await gameDb.Entities.User.update(userIdToUpdate, { ...updateData })
+    return gameDb.AppDataSource.transaction(async (manager: EntityManager) => {
+      let newAvatarFileId: string | undefined
 
-    const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
+      //CREATE AVATAR FILE IF NEEDED
+      if (args.userSelectedParts) {
+        const { fileId, url, pngBuffer } = await createAvatar(args.userSelectedParts, manager)
+        await this.s3Service.upload({
+          key: url,
+          buffer: pngBuffer,
+          contentType: 'image/png',
+        })
+        newAvatarFileId = fileId
+      }
 
-    const user = await gameDb.Entities.User.findOne({
-      where: { id: userIdToUpdate },
-      relations: relations,
-      select: ['id', 'avatarFileId', ...selectedFields],
+      const {
+        id: _ignoreId,
+        userSelectedParts: _ignoreParts,
+        avatarFileId: _ignoreAvatarFromArgs,
+        ...updateData
+      } = args
+
+      if (newAvatarFileId) {
+        ;(updateData as any).avatarFileId = newAvatarFileId
+      }
+
+      await manager.update(gameDb.Entities.User, { id: userIdToUpdate }, { ...updateData })
+
+      const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
+
+      const user = await manager.findOne(gameDb.Entities.User, {
+        where: { id: userIdToUpdate },
+        relations,
+        select: ['id', 'avatarFileId', ...selectedFields],
+      })
+
+      if (!user) {
+        throw new BadRequestException('User not found after update')
+      }
+
+      return user
     })
-
-    if (!user) {
-      throw new BadRequestException('User not found after update')
-    }
-
-    return user
   }
 
   async remove(args: UserRemoveArgs): Promise<CommonResponse> {

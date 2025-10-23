@@ -3,6 +3,7 @@ import { UserService } from './user.service'
 import { UserResolver } from './user.resolver'
 import { JwtModule } from '@nestjs/jwt'
 import { UserApplyEnergyService } from './user-apply-energy.service'
+import { S3Service } from '../upload-file/s3.service'
 
 @Module({
   imports: [
@@ -11,7 +12,7 @@ import { UserApplyEnergyService } from './user-apply-energy.service'
       signOptions: { expiresIn: '1d' },
     }),
   ],
-  providers: [UserResolver, UserService, UserApplyEnergyService],
+  providers: [UserResolver, UserService, UserApplyEnergyService, S3Service],
   exports: [JwtModule],
 })
 export class UserModule {}

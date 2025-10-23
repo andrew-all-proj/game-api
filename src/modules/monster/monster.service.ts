@@ -19,7 +19,6 @@ import { logger } from '../../functions/logger'
 import { costToCreateMonster, monsterStartingStats } from '../../config/monster-starting-stats'
 import { createAvatarMonster } from './functions/createAvatarMonster'
 import { S3Service } from '../upload-file/s3.service'
-import config from 'src/config'
 
 @Injectable()
 export class MonsterService {

@@ -4,9 +4,9 @@ import { FrameData, SpriteAtlas } from 'src/datatypes/common/SpriteAtlas'
 import { SelectedPartsKey } from 'src/modules/monster/dto/monster.args'
 import * as gameDb from 'game-db'
 import config from '../../../config'
-import { loadSpriteSheetBufferFromUrl, loadAtlasJsonFromUrl } from './SpriteSheetBuffer'
 import { v4 as uuidv4 } from 'uuid'
 import { EntityManager } from 'typeorm'
+import { loadSpriteAssets } from '../../file/load-sprite-assets'
 
 function getStayFrameKey(frames: SpriteAtlas['frames'], keyOrBase: string): string | null {
   if (frames[keyOrBase as keyof typeof frames]) return keyOrBase
@@ -179,34 +179,11 @@ export const createAvatarMonster = async (
   manager: EntityManager,
   options?: AvatarOptions,
 ): Promise<{ fileId: string; url: string; pngBuffer: Buffer }> => {
-  const files = await gameDb.Entities.File.find({
-    where: { contentType: gameDb.datatypes.ContentTypeEnum.MAIN_SPRITE_SHEET_MONSTERS },
-  })
-  if (files.length === 0) throw new BadRequestException('Sprite sheet not found')
-
-  const jsonFiles = files.filter((f) => f.fileType === gameDb.datatypes.FileTypeEnum.JSON)
-  const imageFiles = files.filter((f) => f.fileType === gameDb.datatypes.FileTypeEnum.IMAGE)
-
-  const atlasJson =
-    jsonFiles.length === 1
-      ? jsonFiles[0]
-      : jsonFiles.reduce((max, item) => ((item.version ?? 0) > (max.version ?? 0) ? item : max))
-
-  const spriteSheet =
-    imageFiles.length === 1
-      ? imageFiles[0]
-      : imageFiles.reduce((max, item) => ((item.version ?? 0) > (max.version ?? 0) ? item : max))
-
-  if (!atlasJson?.url || !spriteSheet?.url) {
-    throw new BadRequestException('Invalid MAIN_SPRITE_SHEET_MONSTERS entries')
-  }
-
-  const atlasJsonParsed = await loadAtlasJsonFromUrl(atlasJson.url)
-  const spriteSheetBuffer = await loadSpriteSheetBufferFromUrl(spriteSheet.url)
+  const { atlasJson, spriteSheet } = await loadSpriteAssets(gameDb.datatypes.ContentTypeEnum.BASE_SPRITE_SHEET_MONSTERS)
 
   const { pngBuffer } = await renderMonsterAvatarPNG({
-    atlasJson: atlasJsonParsed,
-    spriteSheetBuffer,
+    atlasJson: atlasJson,
+    spriteSheetBuffer: spriteSheet,
     selectedPartsKey,
     options,
   })

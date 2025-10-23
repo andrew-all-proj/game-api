@@ -242,7 +242,7 @@ type Mutation {
   UserInventoryUpdate(id: String!, quantity: Float): UserInventory!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): CommonResponse!
-  UserUpdate(avatarFileId: String, email: String, id: String!, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String): User!
+  UserUpdate(avatarFileId: String, email: String, id: String!, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String, userSelectedParts: UserSelectedBodyPartInput): User!
 }
 
 input NumberFilter {
@@ -385,6 +385,12 @@ enum UserRoleEnum {
   MODERATOR
   SUPER_ADMIN
   USER
+}
+
+input UserSelectedBodyPartInput {
+  bodyPartId: Float!
+  emotionPartId: Float!
+  headPartId: Float!
 }
 
 type UsersList {
