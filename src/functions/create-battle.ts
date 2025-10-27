@@ -4,6 +4,7 @@ import { BattleRedis } from '../datatypes/common/BattleRedis'
 import { logger } from './logger'
 import { v4 as uuidv4 } from 'uuid'
 import { DEFAULT_TURN_MS, DEFAULT_GRACE_MS, SATIETY_COST, TTL_BATTLE } from '../config/battle'
+import config from '../config'
 
 export interface CreateBattleArgs {
   redisClient: Redis
@@ -23,6 +24,28 @@ interface CreateBattleToRedisArgs {
   chatId?: string
 }
 
+function withFullIconUrl(skill: any): any {
+  if (!skill) return skill
+
+  const iconFile = skill.iconFile
+
+  if (!iconFile || !iconFile.url) {
+    return {
+      ...skill,
+    }
+  }
+
+  const fullUrl = iconFile.url.startsWith('http') ? iconFile.url : `${config.fileUrlPrefix}${iconFile.url}`
+
+  return {
+    ...skill,
+    iconFile: {
+      ...iconFile,
+      url: fullUrl,
+    },
+  }
+}
+
 export async function createBattleToRedis({
   redisClient,
   newBattle,
@@ -33,11 +56,19 @@ export async function createBattleToRedis({
   const [opponentMonster, challengerMonster] = await Promise.all([
     gameDb.Entities.Monster.findOne({
       where: { id: opponentMonsterId },
-      relations: { monsterAttacks: true, monsterDefenses: true, user: true },
+      relations: {
+        monsterAttacks: { skill: { iconFile: true } },
+        monsterDefenses: { skill: { iconFile: true } },
+        user: true,
+      },
     }),
     gameDb.Entities.Monster.findOne({
       where: { id: challengerMonsterId },
-      relations: { monsterAttacks: true, monsterDefenses: true, user: true },
+      relations: {
+        monsterAttacks: { skill: { iconFile: true } },
+        monsterDefenses: { skill: { iconFile: true } },
+        user: true,
+      },
     }),
   ])
 
@@ -95,10 +126,10 @@ export async function createBattleToRedis({
       evasion: opponentMonster.evasion,
     },
 
-    challengerAttacks: challengerMonster.monsterAttacks.map((a) => a.skill),
-    challengerDefenses: challengerMonster.monsterDefenses.map((d) => d.skill),
-    opponentAttacks: opponentMonster.monsterAttacks.map((a) => a.skill),
-    opponentDefenses: opponentMonster.monsterDefenses.map((d) => d.skill),
+    challengerAttacks: challengerMonster.monsterAttacks.map((a) => withFullIconUrl(a.skill)),
+    challengerDefenses: challengerMonster.monsterDefenses.map((d) => withFullIconUrl(d.skill)),
+    opponentAttacks: opponentMonster.monsterAttacks.map((a) => withFullIconUrl(a.skill)),
+    opponentDefenses: opponentMonster.monsterDefenses.map((d) => withFullIconUrl(d.skill)),
 
     currentTurnMonsterId: challengerMonsterId,
     turnStartTime: Date.now(),
