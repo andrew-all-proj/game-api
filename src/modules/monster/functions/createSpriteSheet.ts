@@ -22,16 +22,33 @@ export async function createCustomSpriteSheet({
   pngBuffer: Buffer
   atlasJsonBuffer: Buffer
 }> {
-  // filter parts
-  const framesToInclude = Object.entries(atlasJson.frames).filter(
-    ([key]) =>
-      key.startsWith(selectedPartsKey.bodyKey.split('/stay/')[0]) ||
-      key.startsWith(selectedPartsKey.headKey.split('/stay/')[0]) ||
-      key.startsWith(selectedPartsKey.leftArmKey.split('/stay/')[0]) ||
-      (selectedPartsKey.rightArmKey && key.startsWith(selectedPartsKey.rightArmKey.split('/stay/')[0])),
-  )
+  //
+  // 1. Отфильтровать только те кадры, которые относятся к выбранным частям монстра
+  //
+  const framesToInclude = Object.entries(atlasJson.frames).filter(([key]) => {
+    // Берём базовую часть до "/stay/" — это твоя логика принадлежности к конкретному варианту внешности
+    const bodyBase = selectedPartsKey.bodyKey.split('/stay/')[0]
+    const headBase = selectedPartsKey.headKey.split('/stay/')[0]
+    const leftBase = selectedPartsKey.leftArmKey.split('/stay/')[0]
+    const rightBase = selectedPartsKey.rightArmKey ? selectedPartsKey.rightArmKey.split('/stay/')[0] : null
 
-  // group animation
+    return (
+      key.startsWith(bodyBase) ||
+      key.startsWith(headBase) ||
+      key.startsWith(leftBase) ||
+      (rightBase ? key.startsWith(rightBase) : false)
+    )
+  })
+
+  //
+  // 2. Сгруппировать по анимации и по типу части
+  //
+  // ожидаемый ключ формата:
+  //   body/body_2/stay/body_2_0
+  // где:
+  //   [0] = тип части "body" | "head" | "left_arm" | "right_arm"
+  //   [2] = тип анимации "stay" | "hit" | ...
+  //
   const groupedByAnimation: Record<
     string,
     {
@@ -43,9 +60,9 @@ export async function createCustomSpriteSheet({
   > = {}
 
   for (const [key, frameData] of framesToInclude) {
-    const parts = key.split('/') // [body, body_2, stay, body_2_0]
+    const parts = key.split('/') // ['body','body_2','stay','body_2_0']
     const partType = parts[0] // body, head, left_arm, right_arm
-    const animationType = parts[2] // stay, hit, etc.
+    const animationType = parts[2] // stay, hit, walk, ...
 
     if (!groupedByAnimation[animationType]) {
       groupedByAnimation[animationType] = {
@@ -67,13 +84,27 @@ export async function createCustomSpriteSheet({
     }
   }
 
+  //
+  // 3. Теперь собираем конечный спрайт
+  //
+  // Мы будем выкладывать анимации построчно:
+  //  - каждая анимация => одна строка
+  //  - кадры анимации идут слева направо в этой строке
+  //
+  // Для кадра:
+  //  - достаём body/head/left/right
+  //  - для каждого из них вырезаем bitmap из исходного spriteSheetBuffer
+  //
   const layers: { input: Buffer; left: number; top: number }[] = []
+
   let totalWidth = 0
   let totalHeight = 0
 
+  // atlasFrames: итоговый json-атлас для нового спрайта
   const atlasFrames: Record<string, { frame: { x: number; y: number; w: number; h: number } }> = {}
 
-  for (const animation in groupedByAnimation) {
+  for (const animation of Object.keys(groupedByAnimation)) {
+    // координаты текущей "строки"
     let rowWidth = 0
     let rowHeight = 0
 
@@ -82,142 +113,196 @@ export async function createCustomSpriteSheet({
     const leftArmFrames = groupedByAnimation[animation].leftArm
     const rightArmFrames = groupedByAnimation[animation].rightArm
 
+    // считаем, что количество кадров определяется телом (bodyFrames.length)
     for (let i = 0; i < bodyFrames.length; i++) {
-      const bodyFrame = bodyFrames[i][1].frame
-      const bodyPoints = bodyFrames[i][1].points
+      const bodyFrameData = bodyFrames[i][1]
+      const bodyRect = bodyFrameData.frame
 
-      const headFrame = headFrames?.[i]?.[1]?.frame
-      const headPoints = headFrames?.[i]?.[1]?.points
+      const headRect = headFrames?.[i]?.[1]?.frame
+      const leftRect = leftArmFrames?.[i]?.[1]?.frame
+      const rightRect = rightArmFrames?.[i]?.[1]?.frame
 
-      const leftArmFrame = leftArmFrames?.[i]?.[1]?.frame
-      const leftArmPoints = leftArmFrames?.[i]?.[1]?.points
-
-      const rightArmFrame = rightArmFrames?.[i]?.[1]?.frame
-      const rightArmPoints = rightArmFrames?.[i]?.[1]?.points
-
+      // берём исходные куски
       const baseSharp = sharp(spriteSheetBuffer)
 
-      const bodyPromise = baseSharp
+      const bodyBufPromise = baseSharp
         .clone()
         .extract({
-          left: bodyFrame.x,
-          top: bodyFrame.y,
-          width: bodyFrame.w,
-          height: bodyFrame.h,
+          left: bodyRect.x,
+          top: bodyRect.y,
+          width: bodyRect.w,
+          height: bodyRect.h,
         })
         .toBuffer()
 
-      const headPromise = headFrame
+      const headBufPromise = headRect
         ? baseSharp
             .clone()
             .extract({
-              left: headFrame.x,
-              top: headFrame.y,
-              width: headFrame.w,
-              height: headFrame.h,
+              left: headRect.x,
+              top: headRect.y,
+              width: headRect.w,
+              height: headRect.h,
             })
             .toBuffer()
-        : Promise.resolve(null)
+        : Promise.resolve<Buffer | null>(null)
 
-      const leftArmPromise = leftArmFrame
+      const leftBufPromise = leftRect
         ? baseSharp
             .clone()
             .extract({
-              left: leftArmFrame.x,
-              top: leftArmFrame.y,
-              width: leftArmFrame.w,
-              height: leftArmFrame.h,
+              left: leftRect.x,
+              top: leftRect.y,
+              width: leftRect.w,
+              height: leftRect.h,
             })
             .toBuffer()
-        : Promise.resolve(null)
+        : Promise.resolve<Buffer | null>(null)
 
-      const rightArmPromise = rightArmFrame
+      const rightBufPromise = rightRect
         ? baseSharp
             .clone()
             .extract({
-              left: rightArmFrame.x,
-              top: rightArmFrame.y,
-              width: rightArmFrame.w,
-              height: rightArmFrame.h,
+              left: rightRect.x,
+              top: rightRect.y,
+              width: rightRect.w,
+              height: rightRect.h,
             })
             .toBuffer()
-        : Promise.resolve(null)
+        : Promise.resolve<Buffer | null>(null)
 
-      const [bodyBuffer, headBuffer, leftArmBuffer, rightArmBuffer] = await Promise.all([
-        bodyPromise,
-        headPromise,
-        leftArmPromise,
-        rightArmPromise,
+      const [bodyBuf, headBuf, leftBuf, rightBuf] = await Promise.all([
+        bodyBufPromise,
+        headBufPromise,
+        leftBufPromise,
+        rightBufPromise,
       ])
 
-      const headHeightAbove = headPoints?.attachToBody?.y ?? 0
-
+      // база позиционирования = тело
+      // тело кладём в (offsetX, offsetY)
+      // всё остальное центрируем на тело:
+      //
+      // центр тела:
+      //    cxBody = offsetX + bodyRect.w / 2
+      //    cyBody = offsetY + bodyRect.h / 2
+      //
+      // для каждого слоя partRect:
+      //    left = cxBody - partRect.w / 2
+      //    top  = cyBody - partRect.h / 2
+      //
+      // порядок наложения слоёв:
+      //   1. тело
+      //   2. левая рука
+      //   3. правая рука
+      //   4. голова
+      //
+      // (можно менять порядок if нужно визуально)
+      //
       const offsetX = rowWidth
       const offsetY = totalHeight
 
-      if (leftArmBuffer) {
-        const leftArmOffsetX = offsetX + (bodyPoints?.attachLeftArm?.x ?? 0) - (leftArmPoints?.attachToBody?.x ?? 0)
-        const leftArmOffsetY =
-          offsetY + headHeightAbove + (bodyPoints?.attachLeftArm?.y ?? 0) - (leftArmPoints?.attachToBody?.y ?? 0)
+      const cxBody = offsetX + bodyRect.w / 2
+      const cyBody = offsetY + bodyRect.h / 2
+
+      // тело (body) — кладём чётко по offsetX/offsetY
+      if (bodyBuf) {
         layers.push({
-          input: leftArmBuffer,
-          left: leftArmOffsetX,
-          top: leftArmOffsetY,
+          input: bodyBuf,
+          left: offsetX,
+          top: offsetY,
         })
       }
 
-      layers.push({
-        input: bodyBuffer,
-        left: offsetX,
-        top: offsetY + headHeightAbove,
-      })
-
-      if (headBuffer) {
-        const headOffsetX = offsetX + (bodyPoints?.attachToHead?.x ?? 0) - (headPoints?.attachToBody?.x ?? 0)
-        const headOffsetY =
-          offsetY + headHeightAbove + (bodyPoints?.attachToHead?.y ?? 0) - (headPoints?.attachToBody?.y ?? 0)
+      // левая рука
+      if (leftBuf && leftRect) {
+        const leftX = Math.round(cxBody - leftRect.w / 2)
+        const leftY = Math.round(cyBody - leftRect.h / 2)
         layers.push({
-          input: headBuffer,
-          left: headOffsetX,
-          top: headOffsetY,
+          input: leftBuf,
+          left: leftX,
+          top: leftY,
         })
       }
 
-      if (rightArmBuffer) {
-        const rightArmOffsetX = offsetX + (bodyPoints?.attachRightArm?.x ?? 0) - (rightArmPoints?.attachToBody?.x ?? 0)
-        const rightArmOffsetY =
-          offsetY + headHeightAbove + (bodyPoints?.attachRightArm?.y ?? 0) - (rightArmPoints?.attachToBody?.y ?? 0)
+      // правая рука
+      if (rightBuf && rightRect) {
+        const rightX = Math.round(cxBody - rightRect.w / 2)
+        const rightY = Math.round(cyBody - rightRect.h / 2)
         layers.push({
-          input: rightArmBuffer,
-          left: rightArmOffsetX,
-          top: rightArmOffsetY,
+          input: rightBuf,
+          left: rightX,
+          top: rightY,
         })
       }
 
-      const bodyRightEdge = rowWidth + bodyFrame.w
+      // голова
+      if (headBuf && headRect) {
+        const headX = Math.round(cxBody - headRect.w / 2)
+        const headY = Math.round(cyBody - headRect.h / 2)
+        layers.push({
+          input: headBuf,
+          left: headX,
+          top: headY,
+        })
+      }
 
-      const headRightEdge = headBuffer
-        ? rowWidth + (bodyPoints?.attachToHead?.x ?? 0) - (headPoints?.attachToBody?.x ?? 0) + headFrame.w
-        : 0
+      // теперь нам нужно посчитать габариты ИТОГОВОГО кадра
+      // он должен включать всё, что мы положили в этом кадре
+      //
+      // давай соберём bbox (minX, minY, maxX, maxY) с учётом всех частей
+      let minX = offsetX
+      let minY = offsetY
+      let maxX = offsetX + bodyRect.w
+      let maxY = offsetY + bodyRect.h
 
-      const leftArmRightEdge = leftArmBuffer
-        ? offsetX + (bodyPoints?.attachLeftArm?.x ?? 0) + leftArmFrame.w - (leftArmPoints?.attachToBody?.x ?? 0)
-        : 0
+      if (leftRect) {
+        const leftX = Math.round(cxBody - leftRect.w / 2)
+        const leftY = Math.round(cyBody - leftRect.h / 2)
+        minX = Math.min(minX, leftX)
+        minY = Math.min(minY, leftY)
+        maxX = Math.max(maxX, leftX + leftRect.w)
+        maxY = Math.max(maxY, leftY + leftRect.h)
+      }
 
-      const rightArmRightEdge = rightArmBuffer
-        ? offsetX + (bodyPoints?.attachRightArm?.x ?? 0) - (rightArmPoints?.attachToBody?.x ?? 0) + rightArmFrame.w
-        : 0
+      if (rightRect) {
+        const rightX = Math.round(cxBody - rightRect.w / 2)
+        const rightY = Math.round(cyBody - rightRect.h / 2)
+        minX = Math.min(minX, rightX)
+        minY = Math.min(minY, rightY)
+        maxX = Math.max(maxX, rightX + rightRect.w)
+        maxY = Math.max(maxY, rightY + rightRect.h)
+      }
 
-      const frameWidth = Math.max(bodyRightEdge, headRightEdge, leftArmRightEdge, rightArmRightEdge) - offsetX
+      if (headRect) {
+        const headX = Math.round(cxBody - headRect.w / 2)
+        const headY = Math.round(cyBody - headRect.h / 2)
+        minX = Math.min(minX, headX)
+        minY = Math.min(minY, headY)
+        maxX = Math.max(maxX, headX + headRect.w)
+        maxY = Math.max(maxY, headY + headRect.h)
+      }
 
-      const frameHeight = bodyFrame.h + headFrame.h - (headFrame.h - headHeightAbove)
+      const frameW = maxX - offsetX
+      const frameH = maxY - offsetY
 
-      const key = `${animation}_${i}`
-      atlasFrames[key] = { frame: { x: rowWidth, y: totalHeight, w: frameWidth, h: frameHeight } }
+      // сохраняем инфу в итоговый атлас
+      // ключи можно оставить такими же: `${animation}_${i}`
+      atlasFrames[`${animation}_${i}`] = {
+        frame: {
+          x: rowWidth,
+          y: totalHeight,
+          w: frameW,
+          h: frameH,
+        },
+      }
 
-      rowWidth += frameWidth
-      rowHeight = frameHeight
+      // увеличиваем ширину строки на ширину текущего кадра
+      rowWidth += frameW
+      // высота строки — макс. от всех кадров
+      rowHeight = Math.max(rowHeight, frameH)
     }
+
+    // после всех кадров этой анимации:
     totalWidth = Math.max(totalWidth, rowWidth)
     totalHeight += rowHeight
   }
@@ -226,6 +311,7 @@ export async function createCustomSpriteSheet({
     throw new Error(`totalWidth (${totalWidth}) or totalHeight (${totalHeight}) is zero! Check frame calculations.`)
   }
 
+  // соберём итоговое изображение
   const finalImage = sharp({
     create: {
       width: totalWidth,
@@ -248,7 +334,8 @@ export async function createCustomSpriteSheet({
     },
   }
 
-  const [pngBuffer] = await Promise.all([finalImage.composite(layers).png().toBuffer()])
+  // композитим все собранные слои на прозрачный канвас
+  const pngBuffer = await finalImage.composite(layers).png().toBuffer()
 
   const atlasJsonBuffer = Buffer.from(JSON.stringify(atlasJsonData, null, 2), 'utf8')
 
@@ -270,7 +357,7 @@ export const createSpriteSheetMonster = async (
   const { atlasJson, spriteSheet } = await loadSpriteAssets(gameDb.datatypes.ContentTypeEnum.MAIN_SPRITE_SHEET_MONSTERS)
 
   const { imageId, atlasId, pngBuffer, atlasJsonBuffer } = await createCustomSpriteSheet({
-    atlasJson: atlasJson,
+    atlasJson,
     spriteSheetBuffer: spriteSheet,
     selectedPartsKey,
     monsterId,

@@ -19,6 +19,7 @@ import { logger } from '../../functions/logger'
 import { costToCreateMonster, monsterStartingStats } from '../../config/monster-starting-stats'
 import { createAvatarMonster } from './functions/createAvatarMonster'
 import { S3Service } from '../upload-file/s3.service'
+import { extractPartId } from './functions/extractPartId'
 
 @Injectable()
 export class MonsterService {
@@ -51,9 +52,19 @@ export class MonsterService {
         user.energy -= costToCreateMonster
         await manager.save(user)
 
+        const selectedPartsAny = args.selectedPartsKey
+        console.log('selectedPartsAny:', selectedPartsAny)
+        const monsterParts: gameDb.datatypes.MonsterParts = {
+          head: { id: extractPartId(selectedPartsAny.headKey) },
+          body: { id: extractPartId(selectedPartsAny.bodyKey) },
+          arms: {
+            id: extractPartId(selectedPartsAny.leftArmKey),
+          },
+        }
         const monster = manager.create(gameDb.Entities.Monster, {
           name: args.name,
           userId: user.id,
+          monsterParts,
           ...monsterStartingStats.monster,
         })
         await manager.save(monster)
