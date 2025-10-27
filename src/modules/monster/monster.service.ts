@@ -53,7 +53,6 @@ export class MonsterService {
         await manager.save(user)
 
         const selectedPartsAny = args.selectedPartsKey
-        console.log('selectedPartsAny:', selectedPartsAny)
         const monsterParts: gameDb.datatypes.MonsterParts = {
           head: { id: extractPartId(selectedPartsAny.headKey) },
           body: { id: extractPartId(selectedPartsAny.bodyKey) },
