@@ -44,13 +44,13 @@ export class MonsterBattlesService {
       throw new BadRequestException('Monster battles not found')
     }
     const expiredBefore = new Date(Date.now() - EXPIRE_MINUTES * 60_000)
-    if (
-      monsterBattle.status === gameDb.datatypes.BattleStatusEnum.PENDING &&
-      monsterBattle.updatedAt <= expiredBefore
-    ) {
-      monsterBattle.status = gameDb.datatypes.BattleStatusEnum.REJECTED
-      await monsterBattle.save()
-    }
+    // if (
+    //   monsterBattle.status === gameDb.datatypes.BattleStatusEnum.PENDING &&
+    //   monsterBattle.updatedAt <= expiredBefore
+    // ) {
+    //   monsterBattle.status = gameDb.datatypes.BattleStatusEnum.REJECTED
+    //   await monsterBattle.save()
+    // }
     return monsterBattle
   }
 

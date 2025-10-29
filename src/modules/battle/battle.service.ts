@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { Redis } from 'ioredis'
 import { Server } from 'socket.io'
-import { createBattle, createBattleToRedis } from '../../functions/create-battle'
+import { createBattle } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
 import {
@@ -12,7 +12,6 @@ import {
   PASS_GAIN,
   TTL_BATTLE,
 } from '../../config/battle'
-import { BattleAttackService } from './battle-attack.service'
 import { BattleCompletedService } from './battle-completed.service'
 import { logger } from 'src/functions/logger'
 
@@ -22,7 +21,6 @@ export class BattleService {
 
   constructor(
     @Inject('REDIS_CLIENT') readonly redisClient: Redis,
-    private readonly attackService: BattleAttackService,
     private readonly battleCompletedService: BattleCompletedService,
   ) {}
 
