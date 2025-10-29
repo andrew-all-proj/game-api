@@ -18,6 +18,7 @@ import { createWinstonLogger } from './config/winston'
 import { logger } from './functions/logger'
 import { UserInventoryModule } from './modules/user-inventory/user-inventory.module'
 import { PlaygroundController } from './playground.controller'
+import { SkillModule } from './modules/skill/skill.module'
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string; role: string }
@@ -33,6 +34,7 @@ const allowPlayground = !isProd || process.env.GQL_PLAYGROUND === 'true'
     BattleModule,
     BattleSearchModule,
     MonsterBattlesModule,
+    SkillModule,
     FileModule,
     MonsterModule,
     UserModule,

@@ -263,6 +263,8 @@ type Query {
   MonsterBattle(id: String!): MonsterBattles!
   MonsterBattles(challengerMonsterId: UuidFilter, id: UuidFilter, limit: Float!, offset: Float!, opponentMonsterId: UuidFilter, sortOrder: SortOrderEnum, status: BattleStatusFilter, winnerId: UuidFilter): MonsterBattlesList!
   Monsters(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, userId: UuidFilter): MonstersList!
+  Skill(id: String!): Skill!
+  Skills(id: UuidFilter, limit: Float!, offset: Float!, sortOrder: SortOrderEnum): SkillsList!
   User(id: String!): User!
   UserInventories(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, type: UserInventoryTypeFilter, userId: UuidFilter): UserInventoriesList!
   UserInventory(id: String!): UserInventory!
@@ -305,6 +307,11 @@ enum SkillRarity {
 enum SkillType {
   ATTACK
   DEFENSE
+}
+
+type SkillsList {
+  items: [Skill!]
+  totalCount: Float
 }
 
 enum SortOrderEnum {
