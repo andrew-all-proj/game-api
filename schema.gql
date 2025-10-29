@@ -132,6 +132,18 @@ type Food {
   updatedAt: DateTime
 }
 
+type FoodsList {
+  items: [Food!]
+  totalCount: Float
+}
+
+type GetFoodToday {
+  food: Food
+  message: String
+  quantity: Float
+  userInventoryId: String
+}
+
 """
 The `JSON` scalar type represents JSON values as specified by [ECMA-404](http://www.ecma-international.org/publications/files/ECMA-ST/ECMA-404.pdf).
 """
@@ -259,6 +271,9 @@ type Query {
   AdminUsersList(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): AdminUsersList!
   File(id: String!): File!
   Files(contentType: ContentTypeFilter, description: StringFilter, id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, version: NumberFilter): FilesList!
+  Food(id: String!): Food!
+  Foods(id: UuidFilter, limit: Float!, offset: Float!, sortOrder: SortOrderEnum): FoodsList!
+  GetFoodToday(userId: String!): GetFoodToday!
   Monster(id: String!): Monster!
   MonsterBattle(id: String!): MonsterBattles!
   MonsterBattles(challengerMonsterId: UuidFilter, id: UuidFilter, limit: Float!, offset: Float!, opponentMonsterId: UuidFilter, sortOrder: SortOrderEnum, status: BattleStatusFilter, winnerId: UuidFilter): MonsterBattlesList!

@@ -6,7 +6,7 @@ export async function updateFood(
   manager: EntityManager,
   foodId: string,
   quantity: number,
-): Promise<number> {
+): Promise<gameDb.Entities.UserInventory> {
   let userInventory = await manager.findOne(gameDb.Entities.UserInventory, {
     where: {
       userId: user.id,
@@ -28,5 +28,5 @@ export async function updateFood(
 
   await manager.save(userInventory)
 
-  return userInventory.quantity
+  return userInventory
 }

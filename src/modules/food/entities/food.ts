@@ -36,3 +36,18 @@ export class FoodsList {
   @Field({ nullable: true })
   totalCount: number
 }
+
+@ObjectType()
+export class GetFoodToday {
+  @Field({ nullable: true })
+  message: string
+
+  @Field({ nullable: true })
+  quantity: number
+
+  @Field({ nullable: true })
+  userInventoryId?: string
+
+  @Field(() => Food, { nullable: true })
+  food?: Food
+}

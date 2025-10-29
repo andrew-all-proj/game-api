@@ -7742,7 +7742,7 @@ __metadata:
     eslint: "npm:^9.18.0"
     eslint-config-prettier: "npm:^10.0.1"
     eslint-plugin-prettier: "npm:^5.2.2"
-    game-db: "git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.9"
+    game-db: "git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.10"
     globals: "npm:^16.0.0"
     graphql: "npm:^16.11.0"
     graphql-type-json: "npm:^0.3.2"
@@ -7769,15 +7769,15 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.9":
+"game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.10":
   version: 0.0.2
-  resolution: "game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#commit=cae432a6e20ebb07f2adeac388c2520243e3b46c"
+  resolution: "game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#commit=4889d81eef84dd8a687d30291f064dc86ac0a29c"
   dependencies:
     dotenv: "npm:^16.5.0"
     pg: "npm:^8.14.1"
     reflect-metadata: "npm:^0.2.2"
     typeorm: "npm:0.3.22"
-  checksum: 10c0/cb1bcd5d2d1fe35c18aa6566d79834c3a7141772e4fe4cbe6235978ab1954e1a906feb65bc686b93345d154ddac1f4fa7e12e08b67db7a1cc77501c907f9c39b
+  checksum: 10c0/4baf10eb01b7d75989e3b89d3d7035f67ce41c08cdc8c482a04130b9297fc1978ac6f22010ebc67023c2f0f76ef482226a0a4c42f509a6ec565c734169b63429
   languageName: node
   linkType: hard
 

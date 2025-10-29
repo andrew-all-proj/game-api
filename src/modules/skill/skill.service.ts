@@ -41,7 +41,7 @@ export class SkillService {
     })
 
     if (!skill) {
-      throw new BadRequestException('User not found')
+      throw new BadRequestException('Skill not found')
     }
 
     return skill

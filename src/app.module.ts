@@ -19,6 +19,7 @@ import { logger } from './functions/logger'
 import { UserInventoryModule } from './modules/user-inventory/user-inventory.module'
 import { PlaygroundController } from './playground.controller'
 import { SkillModule } from './modules/skill/skill.module'
+import { FoodModule } from './modules/food/food.module'
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string; role: string }
@@ -36,6 +37,7 @@ const allowPlayground = !isProd || process.env.GQL_PLAYGROUND === 'true'
     MonsterBattlesModule,
     SkillModule,
     FileModule,
+    FoodModule,
     MonsterModule,
     UserModule,
     UploadModule,
