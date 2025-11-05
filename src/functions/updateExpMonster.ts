@@ -1,6 +1,6 @@
 import * as gameDb from 'game-db'
-import { monsterLevels } from '../config/monster-levels'
 import { logger } from './logger'
+import { RulesService } from '../modules/rules/rules.service'
 
 export const updateExpMonster = async (
   winnerMonsterId: string,
@@ -31,18 +31,37 @@ const updateSingleMonsterExp = async (monsterId: string, expToAdd: number): Prom
   let newExp = currentExp + expToAdd
   let newLevel = currentLevel
 
+  const rules = await new RulesService().getRules()
+
+  let stamina = monster.stamina ?? 0
+  let strength = monster.strength ?? 0
+  let defense = monster.defense ?? 0
+  let evasion = monster.evasion ?? 0
+
   while (true) {
-    const nextLevelData = monsterLevels.find((l) => l.level === newLevel + 1)
+    const nextLevelData = rules.monsterStartingStats.monsterLevels.find((l) => l.level === newLevel + 1)
+
     if (!nextLevelData || newExp < nextLevelData.exp) {
       break
     }
 
     newExp -= nextLevelData.exp
     newLevel += 1
+
+    const mod = nextLevelData.modifier
+
+    stamina = Math.round(stamina * (mod ?? 1))
+    strength = Math.round(strength * (mod ?? 1))
+    defense = Math.round(defense * (mod ?? 1))
+    evasion = Math.round(evasion * (mod ?? 1))
   }
 
   await gameDb.Entities.Monster.update(monsterId, {
     level: newLevel,
     experiencePoints: newExp,
+    stamina,
+    strength,
+    defense,
+    evasion,
   })
 }
