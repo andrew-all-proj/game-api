@@ -38,7 +38,7 @@
     "bcrypt": "^5.1.1",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.14.1",
-    "game-db": "git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.10",
+    "game-db": "git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.11",
     "graphql": "^16.11.0",
     "graphql-type-json": "^0.3.2",
     "ioredis": "^5.6.1",
@@ -50,7 +50,8 @@
     "rxjs": "^7.8.1",
     "sharp": "^0.34.2",
     "socket.io": "^4.8.1",
-    "winston-elasticsearch": "^0.19.0"
+    "winston-elasticsearch": "^0.19.0",
+    "zod": "^4.1.12"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3.2.0",

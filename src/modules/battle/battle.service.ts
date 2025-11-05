@@ -4,16 +4,9 @@ import { Server } from 'socket.io'
 import { createBattle } from '../../functions/create-battle'
 import * as gameDb from 'game-db'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
-import {
-  DEFAULT_GRACE_MS,
-  DEFAULT_TURN_MS,
-  FIRST_TURN_EXTRA_MS,
-  MAX_MISSED_TURNS,
-  PASS_GAIN,
-  TTL_BATTLE,
-} from '../../config/battle'
 import { BattleCompletedService } from './battle-completed.service'
 import { logger } from 'src/functions/logger'
+import { RulesService } from '../rules/rules.service'
 
 @Injectable()
 export class BattleService {
@@ -22,6 +15,7 @@ export class BattleService {
   constructor(
     @Inject('REDIS_CLIENT') readonly redisClient: Redis,
     private readonly battleCompletedService: BattleCompletedService,
+    private readonly rulesService: RulesService,
   ) {}
 
   setServer(server: Server) {
@@ -51,7 +45,8 @@ export class BattleService {
       battle.opponentReady = false
     }
 
-    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
+    const rules = await this.rulesService.getRules()
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', rules.battle.ttlBattleSec)
 
     return battle
   }
@@ -70,7 +65,8 @@ export class BattleService {
       return null
     }
 
-    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
+    const rules = await this.rulesService.getRules()
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', rules.battle.ttlBattleSec)
 
     return battle
   }
@@ -85,6 +81,7 @@ export class BattleService {
   }
 
   async statusBattle(battleId: string): Promise<BattleRedis | null> {
+    const rules = await this.rulesService.getRules()
     const key = `battle:${battleId}`
     const raw = await this.redisClient.get(key)
     if (!raw) return null
@@ -92,8 +89,8 @@ export class BattleService {
     const battle: BattleRedis = JSON.parse(raw)
     if (battle.winnerMonsterId) return battle
 
-    const limit = battle.turnTimeLimit ?? DEFAULT_TURN_MS
-    const grace = battle.graceMs ?? DEFAULT_GRACE_MS
+    const limit = battle.turnTimeLimit ?? rules.battle.maxTurnsMs
+    const grace = battle.graceMs ?? rules.battle.graceMs
 
     if (!battle.turnStartTime || !battle.turnEndsAtMs) {
       const now = Date.now()
@@ -105,7 +102,7 @@ export class BattleService {
     const now = Date.now()
 
     // on the first move we wait 15s longer before autopass
-    const extra = isFirstTurn ? FIRST_TURN_EXTRA_MS : 0
+    const extra = isFirstTurn ? rules.battle.firstTurnExtraSec : 0
     if (now <= battle.turnEndsAtMs + grace + extra) {
       return battle
     }
@@ -135,7 +132,7 @@ export class BattleService {
     const isCh = skipperId === battle.challengerMonsterId
     const curSta = isCh ? battle.challengerMonsterStamina : battle.opponentMonsterStamina
     const maxSta = isCh ? battle.challengerStats.stamina : battle.opponentStats.stamina
-    const nextSta = Math.min(maxSta, curSta + PASS_GAIN)
+    const nextSta = Math.min(maxSta, curSta + rules.battle.passGain)
     if (isCh) battle.challengerMonsterStamina = nextSta
     else battle.opponentMonsterStamina = nextSta
 
@@ -144,12 +141,12 @@ export class BattleService {
     else battle.opponentMissedTurns = (battle.opponentMissedTurns ?? 0) + 1
 
     const misses = isCh ? (battle.challengerMissedTurns ?? 0) : (battle.opponentMissedTurns ?? 0)
-    if (misses >= (MAX_MISSED_TURNS ?? 3)) {
+    if (misses >= rules.battle.maxMissedTurns) {
       // technical loss
       const winner = oppId
       const loser = skipperId
       await this.battleCompletedService.endBattle(battle, winner, loser, battleId)
-      await this.redisClient.set(key, JSON.stringify(battle), 'EX', TTL_BATTLE)
+      await this.redisClient.set(key, JSON.stringify(battle), 'EX', rules.battle.ttlBattleSec)
       return battle
     }
 
@@ -161,7 +158,7 @@ export class BattleService {
     battle.turnEndsAtMs = t0 + limit
     battle.serverNowMs = Date.now()
 
-    await this.redisClient.set(key, JSON.stringify(battle), 'EX', TTL_BATTLE)
+    await this.redisClient.set(key, JSON.stringify(battle), 'EX', rules.battle.ttlBattleSec)
 
     return battle
   }

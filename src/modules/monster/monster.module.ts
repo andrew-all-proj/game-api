@@ -5,6 +5,7 @@ import { MonsterFeedService } from './monster-feed.service'
 import { MonsterApplyMutagenService } from './monster-apply-mutagen.service'
 import { MonsterApplySkillService } from './monster-apply-skill.service'
 import { S3Service } from '../upload-file/s3.service'
+import { RulesService } from '../rules/rules.service'
 
 @Module({
   imports: [],
@@ -15,6 +16,7 @@ import { S3Service } from '../upload-file/s3.service'
     MonsterApplyMutagenService,
     MonsterApplySkillService,
     S3Service,
+    RulesService,
   ],
 })
 export class MonsterModule {}

@@ -8,11 +8,20 @@ import { BattleCompletedService } from './battle-completed.service'
 import { BattleController } from './battle.controller'
 import { JwtStrategy } from '../../functions/auth/jwt.strategy'
 import { InternalJwtStrategy } from '../../functions/auth/internal-jwt.strategy'
+import { RulesService } from '../rules/rules.service'
 
 @Module({
   imports: [UserModule, RedisModule],
   controllers: [BattleController],
-  providers: [BattleService, BattleAttackService, BattleCompletedService, Battle, JwtStrategy, InternalJwtStrategy],
+  providers: [
+    BattleService,
+    BattleAttackService,
+    BattleCompletedService,
+    Battle,
+    JwtStrategy,
+    InternalJwtStrategy,
+    RulesService,
+  ],
   exports: [BattleService],
 })
 export class BattleModule {}

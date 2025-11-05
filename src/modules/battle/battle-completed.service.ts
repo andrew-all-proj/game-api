@@ -9,11 +9,11 @@ import { BattleRedis } from '../../datatypes/common/BattleRedis'
 import { updateExpMonster } from '../../functions/updateExpMonster'
 import { updateEnergy } from '../../functions/update-energy'
 import { updateFood } from '../../functions/update-food'
-import { battleExpRewards } from '../../config/monster-starting-stats'
-import { REWARD_CONFIG, SATIETY_COST } from '../../config/battle'
 import { EntityManager } from 'typeorm'
 import { updateSkill } from '../../functions/update-skill'
 import { updateMutagen } from '../../functions/update-mutagen'
+import { RulesService } from '../rules/rules.service'
+import { LevelRewardRule, Reward, Rules } from '../rules/rules.schema'
 
 const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
 const roll = (p: number) => Math.random() < p
@@ -21,9 +21,17 @@ const roll = (p: number) => Math.random() < p
 @Injectable()
 export class BattleCompletedService {
   private server: Server
-  constructor(@Inject('REDIS_CLIENT') readonly redisClient: Redis) {}
+  constructor(
+    @Inject('REDIS_CLIENT') readonly redisClient: Redis,
+    private readonly rulesService: RulesService,
+  ) {}
   setServer(server: Server) {
     this.server = server
+  }
+
+  rewardLevel(reward: Reward, levelMonster: number): LevelRewardRule | undefined {
+    const rewards = reward.levels.find((rule) => levelMonster >= rule.level.min && levelMonster <= rule.level.max)
+    return rewards
   }
 
   async rewardsFood(
@@ -32,8 +40,26 @@ export class BattleCompletedService {
     challengerUser: gameDb.Entities.User,
     opponentUser: gameDb.Entities.User,
     winnerMonsterId: string,
+    levelMonster: number,
+    rules: Rules,
   ) {
-    if (!roll(REWARD_CONFIG.food.chance)) return
+    const rewardsLevel = this.rewardLevel(rules.reward, levelMonster)
+
+    if (!rewardsLevel) {
+      logger.error(`Not found reward food for level monster ${levelMonster} battle id ${battle.battleId}`)
+      return
+    }
+
+    const rewardFood = rewardsLevel.rewards.find((rewrd) => rewrd.type === gameDb.datatypes.UserInventoryTypeEnum.FOOD)
+    if (!rewardFood) {
+      return
+    }
+
+    const randomChance = Math.random()
+
+    if (randomChance > rewardFood.chance) {
+      return
+    }
 
     const foodRepo = gameDb.AppDataSource.getRepository(gameDb.Entities.Food)
     const foods = await foodRepo.find()
@@ -43,7 +69,7 @@ export class BattleCompletedService {
     }
 
     const food = foods[Math.floor(Math.random() * foods.length)]
-    const qty = randInt(REWARD_CONFIG.food.min, REWARD_CONFIG.food.max)
+    const qty = randInt(rewardFood.range.min, rewardFood.range.max)
 
     const winnerIsChallenger = winnerMonsterId === battle.challengerMonsterId
     const winnerUser = winnerIsChallenger ? challengerUser : opponentUser
@@ -69,20 +95,35 @@ export class BattleCompletedService {
     challengerUser: gameDb.Entities.User,
     opponentUser: gameDb.Entities.User,
     winnerMonsterId: string,
+    levelMonster: number,
+    rules: Rules,
   ) {
-    if (!roll(REWARD_CONFIG.mutagen.chance)) return
+    const rewardsLevel = this.rewardLevel(rules.reward, levelMonster)
 
-    const candidates = await gameDb.Entities.Mutagen.find()
-    if (!candidates.length) {
+    if (!rewardsLevel) {
+      logger.error(`Not found reward mutagens for level monster ${levelMonster} battle id ${battle.battleId}`)
+      return
+    }
+
+    const reward = rewardsLevel.rewards.find((rewrd) => rewrd.type === gameDb.datatypes.UserInventoryTypeEnum.MUTAGEN)
+    if (!reward) {
+      return
+    }
+
+    const randomChance = Math.random()
+
+    if (randomChance > reward.chance) {
+      return
+    }
+
+    const mutagens = await gameDb.Entities.Mutagen.find()
+    if (!mutagens.length) {
       logger.error('No mutagens found in database')
       return
     }
 
-    const mutagen = candidates[Math.floor(Math.random() * candidates.length)]
-    const qty =
-      REWARD_CONFIG.mutagen.min != null && REWARD_CONFIG.mutagen.max != null
-        ? randInt(REWARD_CONFIG.mutagen.min, REWARD_CONFIG.mutagen.max)
-        : 1
+    const mutagen = mutagens[Math.floor(Math.random() * mutagens.length)]
+    const qty = randInt(reward.range.min, reward.range.max)
 
     const winnerIsChallenger = winnerMonsterId === battle.challengerMonsterId
     const winnerUser = winnerIsChallenger ? challengerUser : opponentUser
@@ -108,8 +149,26 @@ export class BattleCompletedService {
     challengerUser: gameDb.Entities.User,
     opponentUser: gameDb.Entities.User,
     winnerMonsterId: string,
+    levelMonster: number,
+    rules: Rules,
   ) {
-    if (!roll(REWARD_CONFIG.skill.chance)) return
+    const rewardsLevel = this.rewardLevel(rules.reward, levelMonster)
+
+    if (!rewardsLevel) {
+      logger.error(`Not found reward skill for level monster ${levelMonster} battle id ${battle.battleId}`)
+      return
+    }
+
+    const reward = rewardsLevel.rewards.find((rewrd) => rewrd.type === gameDb.datatypes.UserInventoryTypeEnum.SKILL)
+    if (!reward) {
+      return
+    }
+
+    const randomChance = Math.random()
+
+    if (randomChance > reward.chance) {
+      return
+    }
 
     const candidates = await gameDb.Entities.Skill.find({
       where: { rarity: gameDb.datatypes.SkillRarity.COMMON, isBase: false },
@@ -121,10 +180,7 @@ export class BattleCompletedService {
 
     const skill = candidates[Math.floor(Math.random() * candidates.length)]
 
-    const qty =
-      REWARD_CONFIG.skill.min != null && REWARD_CONFIG.skill.max != null
-        ? randInt(REWARD_CONFIG.skill.min, REWARD_CONFIG.skill.max)
-        : 1
+    const qty = randInt(reward.range.min, reward.range.max)
 
     const winnerIsChallenger = winnerMonsterId === battle.challengerMonsterId
     const winnerUser = winnerIsChallenger ? challengerUser : opponentUser
@@ -158,11 +214,16 @@ export class BattleCompletedService {
       log: battle.logs,
     })
 
-    updateExpMonster(winnerMonsterId, loserMonsterId, battleExpRewards.winExp, battleExpRewards.loseExp).catch(
-      (error) => {
-        logger.error(`Failed to update experience for winner ${winnerMonsterId} or loser ${loserMonsterId}:`, error)
-      },
-    )
+    const rules = await this.rulesService.getRules()
+
+    updateExpMonster(
+      winnerMonsterId,
+      loserMonsterId,
+      rules.reward.battleExpRewards.winExp,
+      rules.reward.battleExpRewards.loseExp,
+    ).catch((error) => {
+      logger.error(`Failed to update experience for winner ${winnerMonsterId} or loser ${loserMonsterId}:`, error)
+    })
 
     logBattle.info('battle', {
       battleId,
@@ -186,7 +247,7 @@ export class BattleCompletedService {
     await manager
       .createQueryBuilder()
       .update(gameDb.Entities.Monster)
-      .set({ satiety: () => `GREATEST(satiety - ${SATIETY_COST}, 0)` })
+      .set({ satiety: () => `GREATEST(satiety - ${rules.battle.satietyCostStartBattle}, 0)` })
       .where('id IN (:...ids)', { ids: [battle.challengerMonsterId, battle.opponentMonsterId] })
       .execute()
 
@@ -199,28 +260,36 @@ export class BattleCompletedService {
       return
     }
 
-    await this.rewardsFood(manager, battle, challengerUser, opponentUser, winnerMonsterId)
-    await this.rewardsSkill(manager, battle, challengerUser, opponentUser, winnerMonsterId)
-    await this.rewardsMutagens(manager, battle, challengerUser, opponentUser, winnerMonsterId)
+    let winnerLevel: number
+
+    if (winnerMonsterId === battle.challengerMonsterId) {
+      winnerLevel = battle.challengerMonsterLevel
+    } else {
+      winnerLevel = battle.opponentMonsterLevel
+    }
+
+    await this.rewardsFood(manager, battle, challengerUser, opponentUser, winnerMonsterId, winnerLevel, rules)
+    await this.rewardsSkill(manager, battle, challengerUser, opponentUser, winnerMonsterId, winnerLevel, rules)
+    await this.rewardsMutagens(manager, battle, challengerUser, opponentUser, winnerMonsterId, winnerLevel, rules)
 
     const winnerIsCh = winnerMonsterId === battle.challengerMonsterId
     if (winnerIsCh) {
       battle.challengerGetReward = {
         ...(battle.challengerGetReward ?? {}),
-        exp: battleExpRewards.winExp,
+        exp: rules.reward.battleExpRewards.winExp,
       }
       battle.opponentGetReward = {
         ...(battle.opponentGetReward ?? {}),
-        exp: battleExpRewards.loseExp,
+        exp: rules.reward.battleExpRewards.loseExp,
       }
     } else {
       battle.opponentGetReward = {
         ...(battle.opponentGetReward ?? {}),
-        exp: battleExpRewards.winExp,
+        exp: rules.reward.battleExpRewards.winExp,
       }
       battle.challengerGetReward = {
         ...(battle.challengerGetReward ?? {}),
-        exp: battleExpRewards.loseExp,
+        exp: rules.reward.battleExpRewards.loseExp,
       }
     }
 

@@ -10,13 +10,11 @@ import { Food, FoodsList, GetFoodToday } from './entities/food'
 import { logger } from '../../functions/logger'
 import { updateFood } from '../../functions/update-food'
 import { EntityManager } from 'typeorm'
-
-const DAY_MS = 24 * 60 * 60 * 1000
-const QUANTITY_FOOD = 4
+import { RulesService } from '../rules/rules.service'
 
 @Injectable()
 export class FoodService {
-  constructor() {}
+  constructor(private readonly rulesService: RulesService) {}
 
   async findAll(args: FoodsListArgs, info: GraphQLResolveInfo): Promise<FoodsList> {
     const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
@@ -76,12 +74,15 @@ export class FoodService {
         throw new BadRequestException('User not found')
       }
 
+      const ruleFoodRequest = (await this.rulesService.getRules()).foodRequest
+
       if (user.lastFoodClaimAt) {
         const nowMs = Date.now()
         const lastClaimMs = new Date(user.lastFoodClaimAt).getTime()
         const diffMs = nowMs - lastClaimMs
 
-        if (diffMs < DAY_MS) {
+        const periodMs = ruleFoodRequest.periodHours * 60 * 60 * 1000
+        if (diffMs < periodMs) {
           return {
             quantity: 0,
             message: 'Вы уже получали еду сегодня',
@@ -102,7 +103,7 @@ export class FoodService {
 
       const food = foods[Math.floor(Math.random() * foods.length)]
 
-      const userInventory = await updateFood(user, manager, food.id, QUANTITY_FOOD)
+      const userInventory = await updateFood(user, manager, food.id, ruleFoodRequest.quantityFood)
 
       user.lastFoodClaimAt = new Date()
       await manager.update(gameDb.Entities.User, user.id, {
@@ -111,8 +112,8 @@ export class FoodService {
 
       return {
         userInventoryId: userInventory.id,
-        quantity: QUANTITY_FOOD,
-        message: `Вы получили ${QUANTITY_FOOD} ед. еды (${food.name})`,
+        quantity: ruleFoodRequest.quantityFood,
+        message: `Вы получили ${ruleFoodRequest.quantityFood} ед. еды (${food.name})`,
         food: food,
       }
     })

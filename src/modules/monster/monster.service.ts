@@ -16,17 +16,21 @@ import {
 import { Monster, MonstersList } from './entities/monster'
 import { createSpriteSheetMonster } from './functions/createSpriteSheet'
 import { logger } from '../../functions/logger'
-import { costToCreateMonster, monsterStartingStats } from '../../config/monster-starting-stats'
 import { createAvatarMonster } from './functions/createAvatarMonster'
 import { S3Service } from '../upload-file/s3.service'
 import { extractPartId } from './functions/extractPartId'
+import { RulesService } from '../rules/rules.service'
 
 @Injectable()
 export class MonsterService {
-  constructor(private readonly s3Service: S3Service) {}
+  constructor(
+    private readonly s3Service: S3Service,
+    private readonly rulesService: RulesService,
+  ) {}
 
   async create(args: MonsterCreateArgs, ctx: GraphQLContext): Promise<Monster> {
     const role = ctx.req.user?.role
+    const rules = await this.rulesService.getRules()
     try {
       let userIdCreateMonster = args.userId
 
@@ -47,9 +51,10 @@ export class MonsterService {
 
         const monstersCount = await manager.count(gameDb.Entities.Monster, { where: { userId: user.id } })
         if (monstersCount >= 4) throw new BadRequestException('User already has 4 monsters')
-        if (user.energy < costToCreateMonster) throw new BadRequestException('Not enough energy to create a monster')
+        if (user.energy < rules.monsterStartingStats.costToCreateMonster)
+          throw new BadRequestException('Not enough energy to create a monster')
 
-        user.energy -= costToCreateMonster
+        user.energy -= rules.monsterStartingStats.costToCreateMonster
         await manager.save(user)
 
         const selectedPartsAny = args.selectedPartsKey
@@ -64,7 +69,7 @@ export class MonsterService {
           name: args.name,
           userId: user.id,
           monsterParts,
-          ...monsterStartingStats.monster,
+          ...rules.monsterStartingStats.monster,
         })
         await manager.save(monster)
 
