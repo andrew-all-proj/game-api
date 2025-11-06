@@ -54,7 +54,7 @@ export async function renderMonsterAvatarPNG({
   const leftKey = selectedPartsKey.leftArmKey ? getStayFrameKey(frames, selectedPartsKey.leftArmKey) : null
   const rightKey = selectedPartsKey.rightArmKey ? getStayFrameKey(frames, selectedPartsKey.rightArmKey) : null
 
-  const frameKeys = [bodyKey, headKey, leftKey, rightKey].filter(Boolean) as string[]
+  const frameKeys = [rightKey, bodyKey, headKey, leftKey].filter(Boolean) as string[]
 
   // Вырезаем кадры
   const buffers = await Promise.all(frameKeys.map((key) => extractFrame(spriteSheetBuffer, frames[key].frame)))
