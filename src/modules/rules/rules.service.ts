@@ -39,7 +39,7 @@ export class RulesService {
     }
 
     try {
-      const p = path.join(process.cwd(), 'src', 'modules', 'rules', 'default-rules.json')
+      const p = path.join(__dirname, 'default-rules.json')
       const raw = fs.readFileSync(p, 'utf8')
       const fileRules = RulesSchema.parse(JSON.parse(raw))
       finalRules = fileRules
