@@ -74,6 +74,9 @@ export class UserLogin {
   @Field({ nullable: true })
   energy: number
 
+  @Field(() => gameDb.datatypes.UserLanguage, { nullable: true })
+  language: gameDb.datatypes.UserLanguage
+
   @Field(() => File, { nullable: true })
   avatar: File
 }

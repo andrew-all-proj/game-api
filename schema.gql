@@ -468,6 +468,7 @@ type UserLogin {
   energy: Float
   id: String
   isRegistered: Boolean
+  language: UserLanguage
   nameProfessor: String
   token: String
 }

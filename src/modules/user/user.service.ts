@@ -112,6 +112,7 @@ export class UserService {
       nameProfessor: user.nameProfessor,
       avatar: user.avatar,
       energy: user.energy,
+      language: user.language,
     }
   }
 
