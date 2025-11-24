@@ -1,6 +1,7 @@
 import { ObjectType, Field } from '@nestjs/graphql'
 import { File } from '../../../modules/file/entities/file'
 import { UserInventory } from '../../user-inventory/entities/user-inventory'
+import * as gameDb from 'game-db'
 
 @ObjectType()
 export class User {
@@ -42,6 +43,9 @@ export class User {
 
   @Field(() => File, { nullable: true })
   avatar: File
+
+  @Field(() => gameDb.datatypes.UserLanguage, { nullable: true })
+  language: gameDb.datatypes.UserLanguage
 
   @Field(() => [UserInventory], { nullable: true })
   userInventories?: UserInventory[]

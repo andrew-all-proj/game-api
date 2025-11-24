@@ -2,6 +2,7 @@ import { ObjectType, Field } from '@nestjs/graphql'
 import { File } from '../../file/entities/file'
 import * as gameDb from 'game-db'
 import GraphQLJSON from 'graphql-type-json'
+import { SkillTranslate } from './skill-translate'
 
 @ObjectType()
 export class Skill {
@@ -40,6 +41,9 @@ export class Skill {
 
   @Field(() => GraphQLJSON, { nullable: true })
   effects: gameDb.datatypes.SkillBonusEffect
+
+  @Field(() => [SkillTranslate], { nullable: true })
+  translations?: SkillTranslate[]
 
   @Field({ nullable: true })
   iconFileId: string
