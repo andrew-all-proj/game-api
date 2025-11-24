@@ -16,7 +16,7 @@ export class MonsterBattlesService {
     const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.MonsterBattles)
-    const where = buildQueryFilters(filters)
+    const where = buildQueryFilters(filters, gameDb.Entities.MonsterBattles)
     const [items, totalCount] = await gameDb.Entities.MonsterBattles.findAndCount({
       where: { ...where },
       order: {

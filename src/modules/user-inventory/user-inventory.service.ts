@@ -30,7 +30,19 @@ export class UserInventoryService {
     const userId = resolveUserIdByRole(ctx.req.user?.role, ctx, args?.userId?.eq)
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.UserInventory)
-    const where = buildQueryFilters(filters)
+    const relationsWithSkillTranslations = Array.from(
+      new Set([
+        ...relations,
+        'skill',
+        'skill.translations',
+        'food',
+        'food.translations',
+        'mutagen',
+        'mutagen.translations',
+      ]),
+    )
+
+    const where = buildQueryFilters(filters, gameDb.Entities.UserInventory)
     const [items, totalCount] = await gameDb.Entities.UserInventory.findAndCount({
       where: { ...where, userId: userId },
       order: {
@@ -38,7 +50,7 @@ export class UserInventoryService {
       },
       skip: offset,
       take: limit,
-      relations: relations,
+      relations: relationsWithSkillTranslations,
       select: [...selectedFields, 'createdAt', 'id'],
     })
 

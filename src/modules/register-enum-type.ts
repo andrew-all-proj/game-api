@@ -33,3 +33,7 @@ registerEnumType(gameDb.datatypes.SkillRarity, {
 registerEnumType(gameDb.datatypes.SkillType, {
   name: 'SkillType',
 })
+
+registerEnumType(gameDb.datatypes.UserLanguage, {
+  name: 'UserLanguage',
+})

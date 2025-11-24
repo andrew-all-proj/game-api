@@ -16,7 +16,7 @@ export class SkillService {
     const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.Skill)
-    const where = buildQueryFilters(filters)
+    const where = buildQueryFilters(filters, gameDb.Entities.Skill)
     const [items, totalCount] = await gameDb.Entities.Skill.findAndCount({
       where: { ...where },
       order: {
@@ -24,7 +24,7 @@ export class SkillService {
       },
       skip: offset,
       take: limit,
-      relations: relations,
+      relations: [...relations, 'translations'],
       select: [...selectedFields, 'createdAt'],
     })
 
@@ -36,8 +36,8 @@ export class SkillService {
 
     const skill = await gameDb.Entities.Skill.findOne({
       where: { id: args.id },
-      relations,
-      select: [...selectedFields],
+      relations: [...relations, 'translations'],
+      select: [...selectedFields, 'translations'],
     })
 
     if (!skill) {

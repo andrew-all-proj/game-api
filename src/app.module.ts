@@ -20,6 +20,8 @@ import { UserInventoryModule } from './modules/user-inventory/user-inventory.mod
 import { PlaygroundController } from './playground.controller'
 import { SkillModule } from './modules/skill/skill.module'
 import { FoodModule } from './modules/food/food.module'
+import { MutagenModule } from './modules/mutagen/mutagen.module'
+import { EnergyModule } from './modules/energy/energy.module'
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string; role: string }
@@ -34,7 +36,9 @@ const allowPlayground = !isProd || process.env.GQL_PLAYGROUND === 'true'
     AdminUserModule,
     BattleModule,
     BattleSearchModule,
+    EnergyModule,
     MonsterBattlesModule,
+    MutagenModule,
     SkillModule,
     FileModule,
     FoodModule,

@@ -17,6 +17,7 @@ import { resolveUserIdByRole } from '../../functions/resolve-user-id-by-role'
 import { createAvatar } from './functions/create-avatar'
 import { S3Service } from '../upload-file/s3.service'
 import { EntityManager } from 'typeorm'
+import { JwtPayload } from 'src/functions/auth/jwt.strategy'
 
 interface TelegramUser {
   id: number | string
@@ -94,9 +95,10 @@ export class UserService {
       throw new BadRequestException('User initData error')
     }
 
-    const payload = {
+    const payload: JwtPayload = {
       sub: user.id,
       role: gameDb.datatypes.UserRoleEnum.USER,
+      language: user.language,
     }
 
     const token = this.jwtService.sign(payload)
@@ -128,7 +130,7 @@ export class UserService {
     const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
-    const where = buildQueryFilters(filters)
+    const where = buildQueryFilters(filters, gameDb.Entities.User)
     const [items, totalCount] = await gameDb.Entities.User.findAndCount({
       where: { ...where },
       order: {

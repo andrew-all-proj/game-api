@@ -20,7 +20,7 @@ export class FoodService {
     const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.Food)
-    const where = buildQueryFilters(filters)
+    const where = buildQueryFilters(filters, gameDb.Entities.Food)
     const [items, totalCount] = await gameDb.Entities.Food.findAndCount({
       where: { ...where },
       order: {

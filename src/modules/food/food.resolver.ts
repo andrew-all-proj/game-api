@@ -1,4 +1,4 @@
-import { Resolver, Query, Args, Context, Info } from '@nestjs/graphql'
+import { Resolver, Query, Args, Context, Info, ResolveField, Parent } from '@nestjs/graphql'
 import { UseGuards } from '@nestjs/common'
 import { GqlAuthGuard, RolesGuard, Roles } from '../../functions/auth'
 import * as gameDb from 'game-db'
@@ -35,5 +35,31 @@ export class FoodResolver {
     @Info() info: GraphQLResolveInfo,
   ): Promise<GetFoodToday> {
     return this.foodService.getFoodToday(args, ctx, info)
+  }
+
+  @ResolveField(() => String, { nullable: true })
+  name(@Parent() food: Food, @Context() ctx: GraphQLContext): string | null {
+    const lang = ctx.language ?? ctx.req.user?.language ?? gameDb.datatypes.UserLanguage.EN
+
+    const translations = food.translations ?? []
+
+    const tr =
+      translations.find((t) => t.language === lang) ||
+      translations.find((t) => t.language === gameDb.datatypes.UserLanguage.EN)
+
+    return tr?.name ?? food.name ?? null
+  }
+
+  @ResolveField(() => String, { nullable: true })
+  description(@Parent() food: Food, @Context() ctx: GraphQLContext): string | null {
+    const lang = ctx.language ?? ctx.req.user?.language ?? gameDb.datatypes.UserLanguage.EN
+
+    const translations = food.translations ?? []
+
+    const tr =
+      translations.find((t) => t.language === lang) ||
+      translations.find((t) => t.language === gameDb.datatypes.UserLanguage.EN)
+
+    return tr?.description ?? food.description ?? null
   }
 }

@@ -124,7 +124,7 @@ export class MonsterService {
   async findAll(args: MonstersListArgs, info: GraphQLResolveInfo): Promise<MonstersList> {
     const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.Monster)
-    const where = buildQueryFilters(filters)
+    const where = buildQueryFilters(filters, gameDb.Entities.Monster)
     const [items, totalCount] = await gameDb.Entities.Monster.findAndCount({
       where: { ...where },
       order: {

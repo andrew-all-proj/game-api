@@ -1,5 +1,5 @@
 import { ObjectType, Field } from '@nestjs/graphql'
-import { File } from '../../file/entities/file'
+import { EnergyTranslate } from './energy-translate'
 
 @ObjectType()
 export class Energy {
@@ -23,6 +23,9 @@ export class Energy {
 
   // @Field(() => File, { nullable: true })
   // iconFile?: File
+
+  @Field(() => [EnergyTranslate], { nullable: true })
+  translations?: EnergyTranslate[]
 
   @Field({ nullable: true })
   updatedAt?: Date

@@ -20,10 +20,10 @@ export class Food {
   iconFile?: File
 
   @Field({ nullable: true })
-  satietyBonus: number
+  satietyBonus?: number
 
   @Field(() => [FoodTranslate], { nullable: true })
-  translations?: FoodTranslate[]
+  translations: FoodTranslate[]
 
   @Field({ nullable: true })
   updatedAt?: Date
