@@ -156,7 +156,7 @@ export async function loadSpriteAssets(
           const parsed = JSON.parse(buffer.toString('utf8')) as SpriteAtlas
           cache.json.set(atlasJsonUrl, { value: parsed, etag, loadedAt: Date.now() })
         }
-      } catch (e) {
+      } catch {
         const refs = await getSpriteRefs(contentType, { force: true })
         const { buffer, etag } = await fetchBuffer(refs.atlasJsonUrl)
         const parsed = JSON.parse(buffer.toString('utf8')) as SpriteAtlas
@@ -175,7 +175,7 @@ export async function loadSpriteAssets(
         if (!notModified) {
           cache.bin.set(spriteSheetUrl, { value: buffer, etag, loadedAt: Date.now() })
         }
-      } catch (e) {
+      } catch {
         const refs = await getSpriteRefs(contentType, { force: true })
         const { buffer, etag } = await fetchBuffer(refs.spriteSheetUrl)
         cache.bin.set(refs.spriteSheetUrl, { value: buffer, etag, loadedAt: Date.now() })

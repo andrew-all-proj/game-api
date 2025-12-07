@@ -51,7 +51,7 @@ export class FoodService {
     return food
   }
 
-  async getFoodToday(args: GetFoodTodayArgs, ctx: GraphQLContext, info: GraphQLResolveInfo): Promise<GetFoodToday> {
+  async getFoodToday(args: GetFoodTodayArgs, ctx: GraphQLContext, _info: GraphQLResolveInfo): Promise<GetFoodToday> {
     const role = ctx.req.user?.role
     let userId = args.userId
 

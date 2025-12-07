@@ -6,6 +6,10 @@ import { v4 as uuidv4 } from 'uuid'
 import config from '../config'
 import { RulesService } from 'src/modules/rules/rules.service'
 
+type SkillWithIcon = gameDb.Entities.Skill & {
+  iconFile?: gameDb.Entities.File | null
+}
+
 export interface CreateBattleArgs {
   redisClient: Redis
   opponentMonsterId: string
@@ -24,26 +28,19 @@ interface CreateBattleToRedisArgs {
   chatId?: string
 }
 
-function withFullIconUrl(skill: any): any {
-  if (!skill) return skill
-
-  const iconFile = skill.iconFile
-
-  if (!iconFile || !iconFile.url) {
-    return {
-      ...skill,
-    }
+function withFullIconUrl(skill: SkillWithIcon): SkillWithIcon {
+  const iconUrl = skill.iconFile?.url
+  if (!iconUrl) {
+    return skill
   }
 
-  const fullUrl = iconFile.url.startsWith('http') ? iconFile.url : `${config.fileUrlPrefix}${iconFile.url}`
+  const fullUrl = iconUrl.startsWith('http') ? iconUrl : `${config.fileUrlPrefix}${iconUrl}`
 
-  return {
-    ...skill,
-    iconFile: {
-      ...iconFile,
-      url: fullUrl,
-    },
+  if (skill.iconFile) {
+    skill.iconFile.url = fullUrl
   }
+
+  return skill
 }
 
 export async function createBattleToRedis({
@@ -79,7 +76,7 @@ export async function createBattleToRedis({
     (challengerMonster?.satiety ?? 0) < rules.battle.satietyCostStartBattle
   ) {
     logger.info('Monster is hungry')
-    gameDb.Entities.MonsterBattles.update(
+    await gameDb.Entities.MonsterBattles.update(
       { id: battleId },
       {
         status: gameDb.datatypes.BattleStatusEnum.REJECTED,
@@ -92,7 +89,7 @@ export async function createBattleToRedis({
     logger.error(
       `HP null: ${opponentMonster?.id}: ${opponentMonster?.healthPoints}, ${challengerMonster?.id}: ${challengerMonster?.healthPoints}`,
     )
-    gameDb.Entities.MonsterBattles.update(
+    await gameDb.Entities.MonsterBattles.update(
       { id: battleId },
       {
         status: gameDb.datatypes.BattleStatusEnum.REJECTED,

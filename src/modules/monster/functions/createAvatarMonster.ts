@@ -9,7 +9,7 @@ import { EntityManager } from 'typeorm'
 import { loadSpriteAssets } from '../../file/load-sprite-assets'
 
 function getStayFrameKey(frames: SpriteAtlas['frames'], keyOrBase: string): string | null {
-  if (frames[keyOrBase as keyof typeof frames]) return keyOrBase
+  if (frames[keyOrBase]) return keyOrBase
   const stayIdx = keyOrBase.indexOf('/stay/')
   const base = stayIdx !== -1 ? keyOrBase.slice(0, stayIdx) : keyOrBase.replace(/\/[^/]+$/, '')
   const prefix = `${base}/stay/`

@@ -1,4 +1,4 @@
-import { GraphQLResolveInfo, SelectionNode } from 'graphql'
+import { GraphQLResolveInfo, Kind, SelectionNode } from 'graphql'
 import { EntityMetadata } from 'typeorm/metadata/EntityMetadata'
 
 interface GraphQLField<T> {
@@ -20,9 +20,10 @@ export function extractSelectedFieldsAndRelations<T>(
     const columnNames = metadataArg.columns.map((c) => c.propertyName)
 
     for (const selection of selections) {
-      if (selection.kind !== 'Field') continue
+      if (selection.kind !== Kind.FIELD) continue
 
-      const name = selection.name.value as keyof T
+      const nameValue = selection.name.value
+      const name = nameValue as keyof T
 
       if (['items', 'totalCount', '__typename'].includes(name as string) && !path) {
         if (selection.selectionSet) {
@@ -31,18 +32,18 @@ export function extractSelectedFieldsAndRelations<T>(
         continue
       }
 
-      const currentPath = path ? `${path}.${String(name)}` : (name as string)
+      const currentPath = path ? `${path}.${nameValue}` : nameValue
 
       if (selection.selectionSet) {
-        if (relationNames.includes(name as string)) {
+        if (relationNames.includes(nameValue)) {
           relations.add(currentPath)
-          const nextRelation = metadataArg.relations.find((r) => r.propertyName === name)
+          const nextRelation = metadataArg.relations.find((r) => r.propertyName === nameValue)
           if (nextRelation && nextRelation.inverseEntityMetadata) {
             traverse(selection.selectionSet.selections, currentPath, nextRelation.inverseEntityMetadata)
           }
         }
       } else {
-        if (columnNames.includes(name as string)) {
+        if (columnNames.includes(nameValue)) {
           selectedFields.add(currentPath as keyof T)
         }
       }

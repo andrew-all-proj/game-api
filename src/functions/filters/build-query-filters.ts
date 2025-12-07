@@ -39,7 +39,7 @@ export const buildQueryFilters = <T>(
       filter !== null &&
       ('eq' in filter || 'neq' in filter || 'like' in filter || 'in' in filter || 'gte' in filter || 'lte' in filter)
     ) {
-      const value = filter as FilterValue
+      const value = filter
 
       if (value.eq !== undefined) where[key] = value.eq as any
       if (value.neq !== undefined) where[key] = Not(value.neq as any)

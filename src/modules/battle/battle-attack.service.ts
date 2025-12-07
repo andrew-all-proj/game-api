@@ -98,7 +98,7 @@ export class BattleAttackService {
 
     // autopass by timer (NOT for first turn)
     const nowMs = Date.now()
-    const endsAt = battle.turnEndsAtMs!
+    const endsAt = battle.turnEndsAtMs
     const grace = battle.graceMs ?? rules.battle.graceMs
     const isFirstTurn = (battle.turnNumber ?? 0) === 0
 

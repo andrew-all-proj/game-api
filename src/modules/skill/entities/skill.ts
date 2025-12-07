@@ -1,4 +1,4 @@
-import { ObjectType, Field, HideField } from '@nestjs/graphql'
+import { ObjectType, Field } from '@nestjs/graphql'
 import { File } from '../../file/entities/file'
 import * as gameDb from 'game-db'
 import GraphQLJSON from 'graphql-type-json'

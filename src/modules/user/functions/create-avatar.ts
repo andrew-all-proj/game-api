@@ -52,6 +52,9 @@ async function fetchBufferWithETag(
 
 /* ------------------------- resolve latest PNG/JSON ------------------------ */
 
+const byLatestVersion = (files: gameDb.Entities.File[]): gameDb.Entities.File =>
+  files.reduce((max, it) => ((it.version ?? 0) > (max.version ?? 0) ? it : max))
+
 async function resolveLatestSpritePngAndAtlasJson(): Promise<{ pngUrl: string; jsonUrl: string }> {
   const files = await gameDb.Entities.File.find({
     where: {
@@ -60,24 +63,28 @@ async function resolveLatestSpritePngAndAtlasJson(): Promise<{ pngUrl: string; j
   })
 
   const pngFiles = files.filter(
-    (f: any) => f.fileType === gameDb.datatypes.FileTypeEnum.IMAGE && String(f.url).toLowerCase().endsWith('.png'),
+    (file) =>
+      file.fileType === gameDb.datatypes.FileTypeEnum.IMAGE &&
+      typeof file.url === 'string' &&
+      file.url.toLowerCase().endsWith('.png'),
   )
   const jsonFiles = files.filter(
-    (f: any) => f.fileType === gameDb.datatypes.FileTypeEnum.JSON && String(f.url).toLowerCase().endsWith('.json'),
+    (file) =>
+      file.fileType === gameDb.datatypes.FileTypeEnum.JSON &&
+      typeof file.url === 'string' &&
+      file.url.toLowerCase().endsWith('.json'),
   )
 
   if (!pngFiles.length) throw new Error('Sprite PNG not found')
   if (!jsonFiles.length) throw new Error('Sprite atlas JSON not found')
 
-  const latestPng =
-    pngFiles.length === 1
-      ? pngFiles[0]
-      : pngFiles.reduce((max: any, it: any) => ((it.version ?? 0) > (max.version ?? 0) ? it : max))
+  const latestPng = pngFiles.length === 1 ? pngFiles[0] : byLatestVersion(pngFiles)
 
-  const latestJson =
-    jsonFiles.length === 1
-      ? jsonFiles[0]
-      : jsonFiles.reduce((max: any, it: any) => ((it.version ?? 0) > (max.version ?? 0) ? it : max))
+  const latestJson = jsonFiles.length === 1 ? jsonFiles[0] : byLatestVersion(jsonFiles)
+
+  if (!latestPng.url || !latestJson.url) {
+    throw new Error('Sprite sheet URLs are missing')
+  }
 
   return { pngUrl: toPublicUrl(latestPng.url), jsonUrl: toPublicUrl(latestJson.url) }
 }
@@ -116,6 +123,12 @@ type AtlasHash = {
   meta?: any
 }
 
+function isAtlasHash(value: unknown): value is AtlasHash {
+  if (!value || typeof value !== 'object') return false
+  const frames = (value as { frames?: unknown }).frames
+  return !!frames && typeof frames === 'object'
+}
+
 /** найти фрейм по имени с возможными вариантами ключей */
 function getFrame(atlas: AtlasHash, name: string): { key: string; f: AtlasFrame } | null {
   // чаще всего ключи = "ava-head_1.png" или "ava-head_1"
@@ -147,7 +160,11 @@ export const createAvatar = async (
 
   let atlas: AtlasHash
   try {
-    atlas = JSON.parse(atlasText)
+    const parsed = JSON.parse(atlasText) as unknown
+    if (!isAtlasHash(parsed)) {
+      throw new Error('Invalid atlas structure')
+    }
+    atlas = parsed
   } catch (e) {
     throw new Error(`Atlas JSON parse failed: ${String(e)}`)
   }

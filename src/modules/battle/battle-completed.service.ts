@@ -16,7 +16,6 @@ import { RulesService } from '../rules/rules.service'
 import { LevelRewardRule, Reward, Rules } from '../rules/rules.schema'
 
 const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
-const roll = (p: number) => Math.random() < p
 
 @Injectable()
 export class BattleCompletedService {
@@ -133,12 +132,12 @@ export class BattleCompletedService {
     if (winnerIsChallenger) {
       battle.challengerGetReward = {
         ...(battle.challengerGetReward ?? {}),
-        mutagen: { id: mutagen.id, name: mutagen.name, quantity: qty } as any,
+        mutagen: { id: mutagen.id, name: mutagen.name, quantity: qty },
       }
     } else {
       battle.opponentGetReward = {
         ...(battle.opponentGetReward ?? {}),
-        mutagen: { id: mutagen.id, name: mutagen.name, quantity: qty } as any,
+        mutagen: { id: mutagen.id, name: mutagen.name, quantity: qty },
       }
     }
   }
@@ -190,12 +189,12 @@ export class BattleCompletedService {
     if (winnerIsChallenger) {
       battle.challengerGetReward = {
         ...(battle.challengerGetReward ?? {}),
-        skill: { id: skill.id, name: skill.name, quantity: qty } as any,
+        skill: { id: skill.id, name: skill.name, quantity: qty },
       }
     } else {
       battle.opponentGetReward = {
         ...(battle.opponentGetReward ?? {}),
-        skill: { id: skill.id, name: skill.name, quantity: qty } as any,
+        skill: { id: skill.id, name: skill.name, quantity: qty },
       }
     }
   }

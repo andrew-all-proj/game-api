@@ -200,11 +200,14 @@ export class UserService {
         ...updateData
       } = args
 
+      type UpdatableUserFields = Omit<UserUpdateArgs, 'id' | 'userSelectedParts'>
+      const updatePayload: Partial<UpdatableUserFields> = { ...updateData }
+
       if (newAvatarFileId) {
-        ;(updateData as any).avatarFileId = newAvatarFileId
+        updatePayload.avatarFileId = newAvatarFileId
       }
 
-      await manager.update(gameDb.Entities.User, { id: userIdToUpdate }, { ...updateData })
+      await manager.update(gameDb.Entities.User, { id: userIdToUpdate }, { ...updatePayload })
 
       const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.User)
 

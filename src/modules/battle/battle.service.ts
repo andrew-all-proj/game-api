@@ -22,12 +22,12 @@ export class BattleService {
     this.server = server
   }
 
-  async getBattle(battleId: string, monsterId: string, socketId: string): Promise<BattleRedis | null> {
+  async getBattle(battleId: string, monsterId: string, _socketId: string): Promise<BattleRedis | null> {
     const key = `battle:${battleId}`
 
-    let battleStr = await this.redisClient.get(key)
+    const battleStr = await this.redisClient.get(key)
     if (!battleStr) {
-      this.rejectBattle(battleId)
+      await this.rejectBattle(battleId)
       logger.error('Battle not foun in redis')
       return null
     }
@@ -51,7 +51,7 @@ export class BattleService {
     return battle
   }
 
-  async startBattle(battleId: string, monsterId: string, socketId: string): Promise<BattleRedis | null> {
+  async startBattle(battleId: string, monsterId: string, _socketId: string): Promise<BattleRedis | null> {
     const battleRaw = await this.redisClient.get(`battle:${battleId}`)
     if (!battleRaw) return null
 
@@ -72,7 +72,7 @@ export class BattleService {
   }
 
   async rejectBattle(battleId: string) {
-    gameDb.Entities.MonsterBattles.update(
+    await gameDb.Entities.MonsterBattles.update(
       { id: battleId },
       {
         status: gameDb.datatypes.BattleStatusEnum.REJECTED,
@@ -86,7 +86,9 @@ export class BattleService {
     const raw = await this.redisClient.get(key)
     if (!raw) return null
 
-    const battle: BattleRedis = JSON.parse(raw)
+    const parsedBattle = JSON.parse(raw) as unknown
+    if (!parsedBattle || typeof parsedBattle !== 'object') return null
+    const battle = parsedBattle as BattleRedis
     if (battle.winnerMonsterId) return battle
 
     const limit = battle.turnTimeLimit ?? rules.battle.maxTurnsMs
