@@ -44,7 +44,7 @@ export class AdminUserService {
     const { offset, limit, sortOrder, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.AdminUser)
-    const where = buildQueryFilters(filters)
+    const where = buildQueryFilters(filters, gameDb.Entities.AdminUser)
     const [items, totalCount] = await gameDb.Entities.AdminUser.findAndCount({
       where: { ...where },
       order: {

@@ -1,19 +1,28 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { PassportStrategy } from '@nestjs/passport'
 import { ExtractJwt, Strategy } from 'passport-jwt'
+import { Request } from 'express'
+
+interface InternalJwtPayload {
+  sub?: string
+  type?: string
+  [key: string]: unknown
+}
 
 @Injectable()
 export class InternalJwtStrategy extends PassportStrategy(Strategy, 'internal-jwt') {
   constructor() {
     if (!process.env.INTERNAL_JWT_SECRET) {
-      // eslint-disable-next-line no-console
       console.warn('[InternalJwt] INTERNAL_JWT_SECRET is not set')
       throw new Error('INTERNAL_JWT_SECRET must be set')
     }
 
     super({
       jwtFromRequest: ExtractJwt.fromExtractors([
-        (req) => (req?.headers['x-internal-token'] as string) || null, // X-Internal-Token: <jwt>
+        (req: Request | undefined) => {
+          const token = req?.headers?.['x-internal-token']
+          return typeof token === 'string' ? token : null // X-Internal-Token: <jwt>
+        },
         ExtractJwt.fromAuthHeaderAsBearerToken(),
       ]),
       secretOrKey: process.env.INTERNAL_JWT_SECRET,
@@ -24,13 +33,12 @@ export class InternalJwtStrategy extends PassportStrategy(Strategy, 'internal-jw
     })
 
     if (!process.env.INTERNAL_JWT_SECRET) {
-      // eslint-disable-next-line no-console
       console.warn('[InternalJwt] INTERNAL_JWT_SECRET is not set')
     }
   }
 
-  async validate(payload: any) {
-    const requiredType = process.env.INTERNAL_JWT_TYPE // напр. "internal"
+  validate(payload: InternalJwtPayload) {
+    const requiredType = process.env.INTERNAL_JWT_TYPE
     if (requiredType && payload?.type !== requiredType) {
       throw new UnauthorizedException('Invalid token type for internal route')
     }

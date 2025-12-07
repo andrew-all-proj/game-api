@@ -67,6 +67,9 @@ export interface BattleRedis {
   opponentMonsterId: string
   challengerMonsterId: string
 
+  opponentMonsterLevel: number
+  challengerMonsterLevel: number
+
   opponentUserId: string
   challengerUserId: string
 

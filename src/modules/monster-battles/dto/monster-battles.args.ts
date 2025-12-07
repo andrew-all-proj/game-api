@@ -1,6 +1,6 @@
 import { Field, ArgsType } from '@nestjs/graphql'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
-import { IsOptional, IsUUID } from 'class-validator'
+import { IsEnum, IsOptional, IsUUID } from 'class-validator'
 import { UuidFilter } from '../../../functions/filters/filters'
 import { BattleStatusFilter } from './inputType'
 import * as gameDb from 'game-db'
@@ -42,6 +42,7 @@ export class MonsterBattlesUpdateArgs {
   id: string
 
   @IsOptional()
+  @IsEnum(gameDb.datatypes.BattleStatusEnum)
   @Field(() => gameDb.datatypes.BattleStatusEnum, { nullable: true })
   status: gameDb.datatypes.BattleStatusEnum
 }

@@ -5,9 +5,11 @@ export interface AuthenticatedRequest extends Request {
     id: string
     role: gameDb.datatypes.UserRoleEnum
     email?: string
+    language?: gameDb.datatypes.UserLanguage
   }
 }
 
 export interface GraphQLContext {
   req: AuthenticatedRequest
+  language?: gameDb.datatypes.UserLanguage
 }

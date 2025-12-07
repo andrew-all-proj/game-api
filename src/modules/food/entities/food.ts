@@ -1,5 +1,6 @@
 import { ObjectType, Field } from '@nestjs/graphql'
 import { File } from '../../file/entities/file'
+import { FoodTranslate } from './food-translate'
 
 @ObjectType()
 export class Food {
@@ -19,7 +20,10 @@ export class Food {
   iconFile?: File
 
   @Field({ nullable: true })
-  satietyBonus: number
+  satietyBonus?: number
+
+  @Field(() => [FoodTranslate], { nullable: true })
+  translations: FoodTranslate[]
 
   @Field({ nullable: true })
   updatedAt?: Date
@@ -35,4 +39,19 @@ export class FoodsList {
 
   @Field({ nullable: true })
   totalCount: number
+}
+
+@ObjectType()
+export class GetFoodToday {
+  @Field({ nullable: true })
+  message: string
+
+  @Field({ nullable: true })
+  quantity: number
+
+  @Field({ nullable: true })
+  userInventoryId?: string
+
+  @Field(() => Food, { nullable: true })
+  food?: Food
 }

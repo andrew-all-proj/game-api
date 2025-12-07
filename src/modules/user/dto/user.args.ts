@@ -1,7 +1,8 @@
-import { Field, ArgsType } from '@nestjs/graphql'
+import { Field, ArgsType, InputType } from '@nestjs/graphql'
 import { PaginationArgs } from '../../../datatypes/dto/PaginationArgs'
-import { IsEmail, IsOptional, IsUUID, MaxLength } from 'class-validator'
+import { IsEmail, IsEnum, IsInt, IsOptional, IsUUID, MaxLength, ValidateNested } from 'class-validator'
 import { StringFilter, UuidFilter } from '../../../functions/filters/filters'
+import * as gameDb from 'game-db'
 
 @ArgsType()
 export class UserLoginArgs {
@@ -10,6 +11,21 @@ export class UserLoginArgs {
 
   @Field()
   telegramId: string
+}
+
+@InputType()
+export class UserSelectedBodyPartInput {
+  @IsInt()
+  @Field()
+  bodyPartId: number
+
+  @IsInt()
+  @Field()
+  headPartId: number
+
+  @IsInt()
+  @Field()
+  emotionPartId: number
 }
 
 @ArgsType()
@@ -80,6 +96,7 @@ export class UserUpdateArgs {
   name: string
 
   @Field({ nullable: true })
+  @IsOptional()
   @MaxLength(30)
   nameProfessor: string
 
@@ -101,6 +118,16 @@ export class UserUpdateArgs {
   @IsOptional()
   @Field({ nullable: true })
   avatarFileId: string
+
+  @IsOptional()
+  @ValidateNested()
+  @Field(() => UserSelectedBodyPartInput, { nullable: true })
+  userSelectedParts: UserSelectedBodyPartInput
+
+  @IsOptional()
+  @IsEnum(gameDb.datatypes.UserLanguage)
+  @Field(() => gameDb.datatypes.UserLanguage, { nullable: true })
+  language: gameDb.datatypes.UserLanguage
 }
 
 @ArgsType()

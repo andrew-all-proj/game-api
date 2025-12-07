@@ -5,20 +5,15 @@ WORKDIR /app
 
 # -------- deps ----------
 FROM base AS deps
-RUN apk add --no-cache git openssh && corepack enable || true
+RUN apk add --no-cache git && corepack enable || true
 ENV YARN_NODE_LINKER=node-modules
-
-# SSH known_hosts, чтобы не спрашивало "Are you sure..."
-RUN mkdir -p -m 700 /root/.ssh && ssh-keyscan github.com >> /root/.ssh/known_hosts
 
 COPY package.json ./
 COPY yarn.lock* ./
 COPY .yarnrc.yml .yarnrc.yml
 COPY .yarn ./.yarn
 
-# ВАЖНО: ssh-монтирование при install
-RUN --mount=type=ssh \
-    if [ -f .yarnrc.yml ]; then \
+RUN if [ -f .yarnrc.yml ]; then \
       yarn install --immutable; \
     else \
       yarn install --frozen-lockfile; \
@@ -31,20 +26,17 @@ RUN yarn build
 
 # -------- prod-deps ----------
 FROM base AS prod-deps
-RUN apk add --no-cache git openssh && corepack enable || true
+RUN apk add --no-cache git && corepack enable || true
 ENV NODE_ENV=production
 ENV YARN_NODE_LINKER=node-modules
-
-RUN mkdir -p -m 700 /root/.ssh && ssh-keyscan github.com >> /root/.ssh/known_hosts
 
 COPY package.json ./
 COPY yarn.lock* ./
 COPY .yarnrc.yml .yarnrc.yml
 COPY .yarn ./.yarn
 
-RUN --mount=type=ssh \
-    if [ -f .yarnrc.yml ]; then \
-      yarn workspaces focus -A --production; \
+RUN if [ -f .yarnrc.yml ]; then \
+      yarn install --immutable --mode=skip-build; \
     else \
       yarn install --frozen-lockfile --production=true; \
     fi \

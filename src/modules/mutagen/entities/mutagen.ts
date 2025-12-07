@@ -1,5 +1,6 @@
 import { ObjectType, Field } from '@nestjs/graphql'
 import { File } from '../../file/entities/file'
+import { MutagenTranslate } from './mutagen-translate'
 
 @ObjectType()
 export class Mutagen {
@@ -26,6 +27,9 @@ export class Mutagen {
 
   @Field({ nullable: true })
   iconFileId: string
+
+  @Field(() => [MutagenTranslate], { nullable: true })
+  translations?: MutagenTranslate[]
 
   @Field(() => File, { nullable: true }) //TODO will make this is array in db
   iconFile?: File

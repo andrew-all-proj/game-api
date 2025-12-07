@@ -14,13 +14,13 @@ import * as gameDb from 'game-db'
 import { GraphQLContext } from '../../datatypes/common/GraphQLContext'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { GraphQLResolveInfo } from 'graphql'
-import { monsterLevels } from 'src/config/monster-levels'
 import { MonsterFeedService } from './monster-feed.service'
 import { MonsterFeedArgs } from './dto/monster-feed.args'
 import { MonsterApplyMutagenService } from './monster-apply-mutagen.service'
 import { MonsterApplyMutagenArgs } from './dto/monster-apply-mutagen.args'
 import { MonsterApplySkillService } from './monster-apply-skill.service'
 import { MonsterApplySkillArgs } from './dto/monster-apply-skill.args '
+import { RulesService } from '../rules/rules.service'
 
 @Resolver(() => Monster)
 export class MonsterResolver {
@@ -29,6 +29,7 @@ export class MonsterResolver {
     private readonly monsterFeedService: MonsterFeedService,
     private readonly monsterApplyMutagenService: MonsterApplyMutagenService,
     private readonly monsterApplySkillService: MonsterApplySkillService,
+    private readonly rulesService: RulesService,
   ) {}
 
   @UseGuards(GqlAuthGuard, RolesGuard)
@@ -115,11 +116,12 @@ export class MonsterResolver {
   }
 
   @ResolveField(() => Number, { nullable: true })
-  nextLevelExp(@Parent() monster: Monster): number | null {
+  async nextLevelExp(@Parent() monster: Monster): Promise<number | null> {
     if (!monster || !monster.level) return null
 
+    const rules = await this.rulesService.getRules()
     const nextLevel = monster.level + 1
-    const nextLevelData = monsterLevels.find((l) => l.level === nextLevel)
+    const nextLevelData = rules.monsterStartingStats.monsterLevels.find((l) => l.level === nextLevel)
 
     return nextLevelData?.exp ?? null
   }

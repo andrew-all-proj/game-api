@@ -4,15 +4,15 @@ import { Server } from 'socket.io'
 import * as gameDb from 'game-db'
 import { BattleRedis } from '../../datatypes/common/BattleRedis'
 import { Skill } from 'game-db/dist/entity'
-import { DEFAULT_GRACE_MS, DEFAULT_TURN_MS, TTL_BATTLE } from '../../config/battle'
 import { BattleCompletedService } from './battle-completed.service'
+import { RulesService } from '../rules/rules.service'
 
 /** ---------- helpers ---------- */
 
-function ensureTurnTiming(battle: BattleRedis) {
+function ensureTurnTiming(battle: BattleRedis, graceMs: number) {
   const now = Date.now()
-  const limit = battle.turnTimeLimit ?? DEFAULT_TURN_MS
-  if (!battle.graceMs) battle.graceMs = DEFAULT_GRACE_MS
+  const limit = battle.turnTimeLimit
+  if (!battle.graceMs) battle.graceMs = graceMs
 
   if (!battle.turnEndsAtMs) {
     if (battle.turnStartTime) {
@@ -62,6 +62,7 @@ export class BattleAttackService {
   constructor(
     @Inject('REDIS_CLIENT') readonly redisClient: Redis,
     readonly battleCompletedService: BattleCompletedService,
+    private readonly rulesService: RulesService,
   ) {}
   setServer(server: Server) {
     this.server = server
@@ -92,14 +93,13 @@ export class BattleAttackService {
     const battle: BattleRedis = JSON.parse(battleStr) as BattleRedis
     if (battle.currentTurnMonsterId !== monsterId) return null
 
-    ensureTurnTiming(battle)
-
-    ensureTurnTiming(battle)
+    const rules = await this.rulesService.getRules()
+    ensureTurnTiming(battle, rules.battle.graceMs)
 
     // autopass by timer (NOT for first turn)
     const nowMs = Date.now()
-    const endsAt = battle.turnEndsAtMs!
-    const grace = battle.graceMs ?? DEFAULT_GRACE_MS
+    const endsAt = battle.turnEndsAtMs
+    const grace = battle.graceMs ?? rules.battle.graceMs
     const isFirstTurn = (battle.turnNumber ?? 0) === 0
 
     if (!isFirstTurn && nowMs > endsAt + grace) {
@@ -307,18 +307,18 @@ export class BattleAttackService {
     // Transition of the move and timings
     battle.currentTurnMonsterId = defenderId
     battle.turnNumber = (battle.turnNumber ?? 0) + 1
-    const nextDuration = battle.turnTimeLimit ?? DEFAULT_TURN_MS
+    const nextDuration = battle.turnTimeLimit ?? rules.battle.maxTurnsMs
     const t0 = Date.now()
     battle.turnStartTime = t0
     battle.turnEndsAtMs = t0 + nextDuration
-    battle.graceMs = battle.graceMs ?? DEFAULT_GRACE_MS
+    battle.graceMs = battle.graceMs ?? rules.battle.graceMs
     battle.serverNowMs = Date.now()
 
     if (winnerMonsterId && loserMonsterId) {
       await this.battleCompletedService.endBattle(battle, winnerMonsterId, loserMonsterId, battleId)
     }
 
-    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', TTL_BATTLE)
+    await this.redisClient.set(`battle:${battleId}`, JSON.stringify(battle), 'EX', rules.battle.ttlBattleSec)
 
     return battle
   }

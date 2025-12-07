@@ -66,6 +66,7 @@ enum ContentTypeEnum {
   FOOD
   MAIN_SPRITE_SHEET_MONSTERS
   MUTAGEN
+  SKILL
   SPRITE_SHEET_MONSTER
   SPRITE_SHEET_USER_AVATAR
 }
@@ -87,7 +88,18 @@ type Energy {
   name: String
   priceMinor: Float
   quantity: Float
+  translations: [EnergyTranslate!]
   updatedAt: DateTime
+}
+
+type EnergyTranslate {
+  createdAt: DateTime!
+  description: String
+  energyId: ID!
+  id: ID!
+  language: UserLanguage!
+  name: String!
+  updatedAt: DateTime!
 }
 
 type ErrorResponse {
@@ -128,7 +140,30 @@ type Food {
   id: String
   name: String
   satietyBonus: Float
+  translations: [FoodTranslate!]
   updatedAt: DateTime
+}
+
+type FoodTranslate {
+  createdAt: DateTime!
+  description: String
+  foodId: ID!
+  id: ID!
+  language: UserLanguage!
+  name: String!
+  updatedAt: DateTime!
+}
+
+type FoodsList {
+  items: [Food!]
+  totalCount: Float
+}
+
+type GetFoodToday {
+  food: Food
+  message: String
+  quantity: Float
+  userInventoryId: String
 }
 
 """
@@ -218,7 +253,19 @@ type Mutagen {
   id: String
   name: String
   strength: Float
+  translations: [MutagenTranslate!]
   updatedAt: DateTime
+}
+
+type MutagenTranslate {
+  createdAt: DateTime!
+  description: String
+  effectDescription: String
+  id: ID!
+  language: UserLanguage!
+  mutagenId: ID!
+  name: String!
+  updatedAt: DateTime!
 }
 
 type Mutation {
@@ -242,7 +289,7 @@ type Mutation {
   UserInventoryUpdate(id: String!, quantity: Float): UserInventory!
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): CommonResponse!
-  UserUpdate(avatarFileId: String, email: String, id: String!, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String): User!
+  UserUpdate(avatarFileId: String, email: String, id: String!, isRegistered: Boolean, language: UserLanguage, name: String, nameProfessor: String, phone: String, telegramId: String, userSelectedParts: UserSelectedBodyPartInput): User!
 }
 
 input NumberFilter {
@@ -258,10 +305,15 @@ type Query {
   AdminUsersList(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum): AdminUsersList!
   File(id: String!): File!
   Files(contentType: ContentTypeFilter, description: StringFilter, id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, version: NumberFilter): FilesList!
+  Food(id: String!): Food!
+  Foods(id: UuidFilter, limit: Float!, offset: Float!, sortOrder: SortOrderEnum): FoodsList!
+  GetFoodToday(userId: String!): GetFoodToday!
   Monster(id: String!): Monster!
   MonsterBattle(id: String!): MonsterBattles!
   MonsterBattles(challengerMonsterId: UuidFilter, id: UuidFilter, limit: Float!, offset: Float!, opponentMonsterId: UuidFilter, sortOrder: SortOrderEnum, status: BattleStatusFilter, winnerId: UuidFilter): MonsterBattlesList!
   Monsters(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, userId: UuidFilter): MonstersList!
+  Skill(id: String!, language: UserLanguage): Skill!
+  Skills(id: UuidFilter, language: UserLanguage, limit: Float!, offset: Float!, sortOrder: SortOrderEnum): SkillsList!
   User(id: String!): User!
   UserInventories(id: UuidFilter, limit: Float!, name: StringFilter, offset: Float!, sortOrder: SortOrderEnum, type: UserInventoryTypeFilter, userId: UuidFilter): UserInventoriesList!
   UserInventory(id: String!): UserInventory!
@@ -290,6 +342,7 @@ type Skill {
   name: String
   rarity: SkillRarity
   strength: Float
+  translations: [SkillTranslate!]
   type: SkillType
   updatedAt: DateTime
 }
@@ -301,9 +354,24 @@ enum SkillRarity {
   RARE
 }
 
+type SkillTranslate {
+  createdAt: DateTime!
+  description: String
+  id: ID!
+  language: UserLanguage!
+  name: String!
+  skillId: ID!
+  updatedAt: DateTime!
+}
+
 enum SkillType {
   ATTACK
   DEFENSE
+}
+
+type SkillsList {
+  items: [Skill!]
+  totalCount: Float
 }
 
 enum SortOrderEnum {
@@ -327,6 +395,7 @@ type User {
   isEmailVerified: Boolean
   isPhoneVerified: Boolean
   isRegistered: Boolean
+  language: UserLanguage
   lastEnergyUpdate: DateTime
   name: String
   nameProfessor: String
@@ -371,11 +440,35 @@ input UserInventoryTypeFilter {
   in: [UserInventoryTypeEnum!]
 }
 
+enum UserLanguage {
+  AR
+  CN
+  DE
+  EN
+  ES
+  FA
+  FR
+  HI
+  ID
+  IT
+  JA
+  KO
+  PL
+  PT
+  RU
+  TH
+  TR
+  TW
+  UK
+  VI
+}
+
 type UserLogin {
   avatar: File
   energy: Float
   id: String
   isRegistered: Boolean
+  language: UserLanguage
   nameProfessor: String
   token: String
 }
@@ -385,6 +478,12 @@ enum UserRoleEnum {
   MODERATOR
   SUPER_ADMIN
   USER
+}
+
+input UserSelectedBodyPartInput {
+  bodyPartId: Float!
+  emotionPartId: Float!
+  headPartId: Float!
 }
 
 type UsersList {

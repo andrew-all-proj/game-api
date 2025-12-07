@@ -1,14 +1,26 @@
-import { Controller, Post, UploadedFile, UseGuards, UseInterceptors, Req, Body } from '@nestjs/common'
+import {
+  Controller,
+  Post,
+  UploadedFile,
+  UseGuards,
+  UseInterceptors,
+  Req,
+  Body,
+  BadRequestException,
+} from '@nestjs/common'
 import { FileInterceptor } from '@nestjs/platform-express'
-import { diskStorage } from 'multer'
-import { extname } from 'path'
-import { GqlAuthGuard, Roles, RolesGuard } from '../../functions/auth'
-import * as gameDb from 'game-db'
+import * as multer from 'multer'
 import { v4 as uuidv4 } from 'uuid'
 import { Request } from 'express'
+
+import { GqlAuthGuard, Roles, RolesGuard } from '../../functions/auth'
+import * as gameDb from 'game-db'
 import { UploadFileDto } from './upload-file.dto'
+import { S3Service } from './s3.service'
 import config from '../../config'
-import * as fs from 'fs'
+
+const memoryStorage = multer.memoryStorage()
+const ALLOWED_MIME = new Set(['image/png', 'image/jpeg', 'image/webp', 'application/pdf'])
 
 interface UploadFileResponse {
   id: string
@@ -24,6 +36,8 @@ interface UploadRequest extends Request {
 
 @Controller('upload')
 export class UploadController {
+  constructor(private readonly s3: S3Service) {}
+
   @UseGuards(GqlAuthGuard, RolesGuard)
   @Roles(
     gameDb.datatypes.UserRoleEnum.SUPER_ADMIN,
@@ -33,27 +47,8 @@ export class UploadController {
   @Post()
   @UseInterceptors(
     FileInterceptor('file', {
-      storage: diskStorage({
-        destination: (
-          req: Request,
-          file: Express.Multer.File,
-          cb: (error: Error | null, destination: string) => void,
-        ) => {
-          if (!fs.existsSync(config.fileUploadDir)) {
-            fs.mkdirSync(config.fileUploadDir, { recursive: true })
-          }
-          cb(null, config.fileUploadDir)
-        },
-        filename: (
-          req: UploadRequest,
-          file: Express.Multer.File,
-          cb: (error: Error | null, filename: string) => void,
-        ) => {
-          const uniqueId = uuidv4()
-          req.generatedFileId = uniqueId
-          cb(null, `${uniqueId}${extname(file.originalname)}`)
-        },
-      }),
+      storage: memoryStorage,
+      limits: { fileSize: Number(process.env.MAX_UPLOAD_MB ?? 20) * 1024 * 1024 },
     }),
   )
   async uploadFile(
@@ -61,22 +56,33 @@ export class UploadController {
     @Req() req: UploadRequest,
     @Body() body: UploadFileDto,
   ): Promise<UploadFileResponse> {
-    const id = req.generatedFileId
+    if (!file) throw new BadRequestException('No file provided')
+    if (!ALLOWED_MIME.has(file.mimetype)) {
+      throw new BadRequestException(`Unsupported mimetype: ${file.mimetype}`)
+    }
+
+    const id = uuidv4()
+    const key = `${config.s3.prefix}/${id}.png`
+
+    await this.s3.upload({
+      key: key,
+      buffer: file.buffer,
+      contentType: file.mimetype,
+    })
 
     const newFile = gameDb.Entities.File.create({
       id,
       name: body.name,
       fileType: body.fileType,
-      contentType: body.contentType,
-      url: `${file.filename}`,
+      contentType: body.contentType ?? file.mimetype,
+      url: key,
     })
-
     await newFile.save()
 
     return {
       id: newFile.id,
-      url: newFile.url,
-      filename: file.filename,
+      url: config.fileUrlPrefix + '/' + key,
+      filename: file.originalname,
       mimetype: file.mimetype,
       size: file.size,
     }

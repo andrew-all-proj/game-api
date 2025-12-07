@@ -1,0 +1,83 @@
+{
+  "version": "1.0.0",
+  "battle": {
+    "maxTurnsMs": 15000,  
+    "graceMs": 250,
+    "firstTurnExtraMs": 15000,
+    "passGain": 3,
+    "ttlBattleSec": 180,
+    "satietyCostStartBattle": 25,
+    "maxMissedTurns": 5
+  },
+  "reward": {
+    "battleExpRewards": {
+        "winExp": 30,
+        "loseExp": 15
+    },
+    "levels": [
+      {
+        "level": { "min": 1, "max": 5 },
+        "rewards": [
+          { "type": "FOOD", "chance": 1.0, "range": { "min": 1, "max": 2 } },
+          { "type": "MUTAGEN", "chance": 0.25, "range": { "min": 1, "max": 1 }},
+          { "type": "SKILL", "chance": 0.1, "range": { "min": 1, "max": 1 }}
+        ]
+      },
+      {
+        "level": { "min": 6, "max": 10 },
+        "rewards": [
+          { "type": "FOOD", "chance": 1.0, "range": { "min": 2, "max": 3 } },
+          { "type": "MUTAGEN", "chance": 0.35, "range": { "min": 1, "max": 1 } },
+          { "type": "SKILL", "chance": 0.15, "range": { "min": 1, "max": 1 } }
+        ]
+      },
+      {
+        "level": { "min": 11, "max": 20 },
+        "rewards": [
+          { "type": "FOOD", "chance": 1.0, "range": { "min": 3, "max": 3 } },
+          { "type": "MUTAGEN", "chance": 0.5, "range": { "min": 1, "max": 2 }},
+          { "type": "SKILL", "chance": 0.25, "range": { "min": 1, "max": 1 }}
+        ]
+      }
+    ]
+  },
+  "monsterStartingStats": {
+    "monster": {
+        "healthPoints": 100,
+        "stamina": 6,
+        "strength": 12,
+        "defense": 10,
+        "evasion": 5,
+        "experiencePoints": 0,
+        "level": 1,
+        "satiety": 50
+    },
+    "costToCreateMonster": 250,
+    "monsterLevels": [
+        { "level": 1,  "exp": 0,    "modifier": 1.0  },
+        { "level": 2,  "exp": 30,   "modifier": 1.15 },
+        { "level": 3,  "exp": 60,   "modifier": 1.3  },
+        { "level": 4,  "exp": 100,  "modifier": 1.45 },
+        { "level": 5,  "exp": 150,  "modifier": 1.6  },
+        { "level": 6,  "exp": 210,  "modifier": 1.75 },
+        { "level": 7,  "exp": 280,  "modifier": 1.9  },
+        { "level": 8,  "exp": 360,  "modifier": 2.05 },
+        { "level": 9,  "exp": 450,  "modifier": 2.2  },
+        { "level": 10, "exp": 550,  "modifier": 2.35 },
+        { "level": 11, "exp": 700,  "modifier": 2.5  },
+        { "level": 12, "exp": 850,  "modifier": 2.65 },
+        { "level": 13, "exp": 1050, "modifier": 2.8  },
+        { "level": 14, "exp": 1300, "modifier": 2.95 },
+        { "level": 15, "exp": 1600, "modifier": 3.1  },
+        { "level": 16, "exp": 2000, "modifier": 3.25 },
+        { "level": 17, "exp": 2500, "modifier": 3.4  },
+        { "level": 18, "exp": 3100, "modifier": 3.55 },
+        { "level": 19, "exp": 3800, "modifier": 3.7  },
+        { "level": 20, "exp": 4600, "modifier": 3.85 }
+    ]
+  },
+  "foodRequest": {
+    "periodHours": 24,
+    "quantityFood": 4
+  }
+}

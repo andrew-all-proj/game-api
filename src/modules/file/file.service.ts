@@ -16,7 +16,7 @@ export class FileService {
     const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.File)
-    const where = buildQueryFilters<File>(filters)
+    const where = buildQueryFilters<File>(filters, gameDb.Entities.File)
     const [items, totalCount] = await gameDb.Entities.File.findAndCount({
       where: { ...where },
       order: {

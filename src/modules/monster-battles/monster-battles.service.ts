@@ -8,8 +8,6 @@ import { extractSelectedFieldsAndRelations } from '../../functions/extract-selec
 import { MonsterBattles, MonsterBattlesList } from './entities/monster-battles'
 import { MonsterBattlesArgs, MonsterBattlesListArgs, MonsterBattlesUpdateArgs } from './dto/monster-battles.args'
 
-const EXPIRE_MINUTES = 5
-
 @Injectable()
 export class MonsterBattlesService {
   constructor() {}
@@ -18,7 +16,7 @@ export class MonsterBattlesService {
     const { offset, limit, sortOrder = SortOrderEnum.DESC, ...filters } = args || {}
 
     const { selectedFields, relations } = extractSelectedFieldsAndRelations(info, gameDb.Entities.MonsterBattles)
-    const where = buildQueryFilters(filters)
+    const where = buildQueryFilters(filters, gameDb.Entities.MonsterBattles)
     const [items, totalCount] = await gameDb.Entities.MonsterBattles.findAndCount({
       where: { ...where },
       order: {
@@ -42,14 +40,6 @@ export class MonsterBattlesService {
     })
     if (!monsterBattle) {
       throw new BadRequestException('Monster battles not found')
-    }
-    const expiredBefore = new Date(Date.now() - EXPIRE_MINUTES * 60_000)
-    if (
-      monsterBattle.status === gameDb.datatypes.BattleStatusEnum.PENDING &&
-      monsterBattle.updatedAt <= expiredBefore
-    ) {
-      monsterBattle.status = gameDb.datatypes.BattleStatusEnum.REJECTED
-      await monsterBattle.save()
     }
     return monsterBattle
   }
