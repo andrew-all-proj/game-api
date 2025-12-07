@@ -7742,7 +7742,7 @@ __metadata:
     eslint: "npm:^9.18.0"
     eslint-config-prettier: "npm:^10.0.1"
     eslint-plugin-prettier: "npm:^5.2.2"
-    game-db: "git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.15"
+    game-db: "https://github.com/andrew-all-proj/game-db.git#v0.10.15"
     globals: "npm:^16.0.0"
     graphql: "npm:^16.11.0"
     graphql-type-json: "npm:^0.3.2"
@@ -7770,9 +7770,9 @@ __metadata:
   languageName: unknown
   linkType: soft
 
-"game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#v0.10.15":
+"game-db@https://github.com/andrew-all-proj/game-db.git#v0.10.15":
   version: 0.0.2
-  resolution: "game-db@git+ssh://git@github.com/andrew-all-proj/game-db.git#commit=57c409b0cc4a95da667a2d726a9379db444b7d9c"
+  resolution: "game-db@https://github.com/andrew-all-proj/game-db.git#commit=57c409b0cc4a95da667a2d726a9379db444b7d9c"
   dependencies:
     dotenv: "npm:^16.5.0"
     pg: "npm:^8.14.1"
