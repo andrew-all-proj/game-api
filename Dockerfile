@@ -7,6 +7,7 @@ WORKDIR /app
 FROM base AS deps
 RUN apk add --no-cache git openssh && corepack enable || true
 ENV YARN_NODE_LINKER=node-modules
+RUN git config --global core.autocrlf false
 
 # SSH known_hosts, чтобы не спрашивало "Are you sure..."
 RUN mkdir -p -m 700 /root/.ssh && ssh-keyscan github.com >> /root/.ssh/known_hosts
@@ -34,6 +35,7 @@ FROM base AS prod-deps
 RUN apk add --no-cache git openssh && corepack enable || true
 ENV NODE_ENV=production
 ENV YARN_NODE_LINKER=node-modules
+RUN git config --global core.autocrlf false
 
 RUN mkdir -p -m 700 /root/.ssh && ssh-keyscan github.com >> /root/.ssh/known_hosts
 
