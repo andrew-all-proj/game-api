@@ -44,7 +44,7 @@ COPY .yarn ./.yarn
 
 RUN --mount=type=ssh \
     if [ -f .yarnrc.yml ]; then \
-      yarn install --immutable --mode=skip-builds --production; \
+      yarn install --immutable --mode=skip-build; \
     else \
       yarn install --frozen-lockfile --production=true; \
     fi \
