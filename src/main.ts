@@ -6,6 +6,7 @@ import config from './config'
 import { createWinstonLogger } from './config/winston'
 import { WinstonModule } from 'nest-winston'
 import { MicroserviceOptions, Transport } from '@nestjs/microservices'
+import { buildRabbitUrls } from './modules/rabbitmq/rabbitmq.module'
 
 async function bootstrap() {
   const logger = WinstonModule.createLogger(createWinstonLogger())
@@ -29,8 +30,7 @@ async function bootstrap() {
     logger,
   })
 
-  const rabbitMqUrl =
-    `amqp://${config.rabbitMq.user}:${config.rabbitMq.password}` + `@${config.rabbitMq.host}:${config.rabbitMq.port}`
+  const rabbitMqUrls = buildRabbitUrls()
 
   const rabbitMqQueue = config.rabbitMq.queueApi
 
@@ -38,7 +38,7 @@ async function bootstrap() {
     app.connectMicroservice<MicroserviceOptions>({
       transport: Transport.RMQ,
       options: {
-        urls: [rabbitMqUrl],
+        urls: rabbitMqUrls,
         queue: rabbitMqQueue,
         queueOptions: {
           durable: true,
