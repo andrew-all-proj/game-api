@@ -24,4 +24,12 @@ export default {
     bucket: process.env.S3_BUCKET,
     prefix: process.env.S3_PREFIX || 'testing',
   },
+  rabbitMq: {
+    user: process.env.RABBITMQ_USER || 'guest',
+    password: process.env.RABBITMQ_PASSWORD || 'guest',
+    host: process.env.RABBITMQ_HOST || 'localhost',
+    port: process.env.RABBITMQ_PORT || '5672',
+    queue: process.env.RABBITMQ_QUEUE || 'queue',
+    queueApi: process.env.RABBITMQ_QUEUE_API || 'queue',
+  },
 } as const

@@ -14,8 +14,23 @@ import { updateSkill } from '../../functions/update-skill'
 import { updateMutagen } from '../../functions/update-mutagen'
 import { RulesService } from '../rules/rules.service'
 import { LevelRewardRule, Reward, Rules } from '../rules/rules.schema'
+import { RABBITMQ_BATTLE_CLIENT } from '../rabbitmq/rabbitmq.module'
+import { ClientProxy } from '@nestjs/microservices'
+import { lastValueFrom } from 'rxjs'
 
 const randInt = (min: number, max: number) => Math.floor(Math.random() * (max - min + 1)) + min
+
+type BattleCompletedEventPayload = {
+  battleId: string
+  winnerMonsterId: string
+  loserMonsterId: string
+  challengerUserId: string
+  opponentUserId: string
+  challengerGetReward?: BattleRedis['challengerGetReward']
+  opponentGetReward?: BattleRedis['opponentGetReward']
+  chatId?: string
+  finishedAt?: string
+}
 
 @Injectable()
 export class BattleCompletedService {
@@ -23,9 +38,29 @@ export class BattleCompletedService {
   constructor(
     @Inject('REDIS_CLIENT') readonly redisClient: Redis,
     private readonly rulesService: RulesService,
+    @Inject(RABBITMQ_BATTLE_CLIENT) private readonly battleMqClient: ClientProxy,
   ) {}
   setServer(server: Server) {
     this.server = server
+  }
+
+  async emitBattleCompletedEvent(payload: BattleCompletedEventPayload) {
+    if (!payload.chatId) {
+      logger.warn('Skipping battle.completed emit because chatId is missing', { battleId: payload.battleId })
+      return
+    }
+
+    try {
+      await this.battleMqClient.connect()
+      await lastValueFrom(
+        this.battleMqClient.emit('battle.completed', {
+          ...payload,
+          finishedAt: payload.finishedAt ?? new Date().toISOString(),
+        }),
+      )
+    } catch (err) {
+      logger.error('Failed to emit battle.completed', err)
+    }
   }
 
   rewardLevel(reward: Reward, levelMonster: number): LevelRewardRule | undefined {
@@ -292,14 +327,20 @@ export class BattleCompletedService {
       }
     }
 
+    //TODO add to rules  -125
     await Promise.all([updateEnergy(challengerUser, manager, -125), updateEnergy(opponentUser, manager, -125)])
 
     if (battle.chatId) {
-      fetchRequest({
-        url: `http://${config.botServiceUrl}/result-battle/${battleId}`,
-        method: 'GET',
-        headers: { Authorization: `Bearer ${config.botServiceToken}` },
-      }).catch((error) => logger.error('Fetch result battle', error))
+      await this.emitBattleCompletedEvent({
+        battleId,
+        winnerMonsterId,
+        loserMonsterId,
+        challengerUserId: battle.challengerUserId,
+        opponentUserId: battle.opponentUserId,
+        challengerGetReward: battle.challengerGetReward,
+        opponentGetReward: battle.opponentGetReward,
+        chatId: battle.chatId,
+      })
     }
   }
 }
