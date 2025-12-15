@@ -9,9 +9,10 @@ import { BattleController } from './battle.controller'
 import { JwtStrategy } from '../../functions/auth/jwt.strategy'
 import { InternalJwtStrategy } from '../../functions/auth/internal-jwt.strategy'
 import { RulesService } from '../rules/rules.service'
+import { RabbitMqModule } from '../rabbitmq/rabbitmq.module'
 
 @Module({
-  imports: [UserModule, RedisModule],
+  imports: [UserModule, RedisModule, RabbitMqModule],
   controllers: [BattleController],
   providers: [
     BattleService,

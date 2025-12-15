@@ -10,7 +10,7 @@ import {
 import { AuthService } from './auth.service'
 import { AdminUser, AdminUserLogin, AdminUsersList } from './entities/admin-user.entity'
 import { BadRequestException } from '@nestjs/common'
-import * as bcrypt from 'bcrypt'
+import * as bcrypt from 'bcryptjs'
 import * as gameDb from 'game-db'
 import { CommonResponse } from '../../datatypes/entities/CommonResponse'
 import { extractSelectedFieldsAndRelations } from '../../functions/extract-selected-fields-and-relations'

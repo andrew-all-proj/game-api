@@ -1,6 +1,6 @@
 import { Injectable, UnauthorizedException } from '@nestjs/common'
 import { JwtService } from '@nestjs/jwt'
-import * as bcrypt from 'bcrypt'
+import * as bcrypt from 'bcryptjs'
 import * as gameDb from 'game-db'
 import { AdminUserLoginArgs } from './dto/admin-user.args'
 import { AdminUserLogin } from './entities/admin-user.entity'

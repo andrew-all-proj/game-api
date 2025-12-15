@@ -282,6 +282,7 @@ type Mutation {
   MonsterFeed(monsterId: String!, quantity: Float, userInventoryId: String!): CommonResponse!
   MonsterRemove(id: String!, userId: String): CommonResponse!
   MonsterUpdate(id: String!, isSelected: Boolean, name: String, userId: String): Monster!
+  SendNotification(message: String!, publishAt: String, type: NotificationType!, userIds: [String!]!): CommonResponse!
   UserApplyEnergy(userId: String!, userInventoryId: String!): CommonResponse!
   UserCreate(avatarFileId: String, email: String, isEmailVerified: Boolean, isPhoneVerified: Boolean, isRegistered: Boolean, name: String, nameProfessor: String, phone: String, telegramId: String): User!
   UserInventoryCreate(foodId: String, mutagenId: String, quantity: Float, userId: String): UserInventory!
@@ -290,6 +291,11 @@ type Mutation {
   UserLogin(initData: String!, telegramId: String!): UserLogin!
   UserRemove(id: String!): CommonResponse!
   UserUpdate(avatarFileId: String, email: String, id: String!, isRegistered: Boolean, language: UserLanguage, name: String, nameProfessor: String, phone: String, telegramId: String, userSelectedParts: UserSelectedBodyPartInput): User!
+}
+
+enum NotificationType {
+  EMAIL
+  TELEGRAM
 }
 
 input NumberFilter {
