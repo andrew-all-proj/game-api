@@ -1,6 +1,7 @@
 import { registerEnumType } from '@nestjs/graphql'
 import * as gameDb from 'game-db'
 import { SortOrderEnum } from '../datatypes/common/SortOrderEnum'
+import { NotificationType } from './notification/notification.types'
 
 registerEnumType(gameDb.datatypes.UserRoleEnum, {
   name: 'UserRoleEnum',
@@ -36,4 +37,8 @@ registerEnumType(gameDb.datatypes.SkillType, {
 
 registerEnumType(gameDb.datatypes.UserLanguage, {
   name: 'UserLanguage',
+})
+
+registerEnumType(NotificationType, {
+  name: 'NotificationType',
 })

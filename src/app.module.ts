@@ -22,6 +22,7 @@ import { SkillModule } from './modules/skill/skill.module'
 import { FoodModule } from './modules/food/food.module'
 import { MutagenModule } from './modules/mutagen/mutagen.module'
 import { EnergyModule } from './modules/energy/energy.module'
+import { NotificationModule } from './modules/notification/notification.module'
 
 interface AuthenticatedRequest extends Request {
   user?: { id: string; role: string }
@@ -43,6 +44,7 @@ const allowPlayground = !isProd || process.env.GQL_PLAYGROUND === 'true'
     FileModule,
     FoodModule,
     MonsterModule,
+    NotificationModule,
     UserModule,
     UploadModule,
     UserInventoryModule,
